@@ -17,15 +17,19 @@
           v-for="(cell, colIndex) in row"
           :key="`cell-${rowIndex}-${colIndex}`"
           class="board-cell"
-          :class="{ 'valid-move': isValidMove(rowIndex, colIndex) }"
+          :class="{ 'valid-move': isValidMove(rowIndex, colIndex) && !isAnimating }"
           @click="makeMove(rowIndex, colIndex)"
         >
           <div
             v-if="cell !== 0"
             class="piece"
-            :class="{ 'piece-black': cell === 1, 'piece-white': cell === 2 }"
+            :class="{
+              'piece-black': cell === 1,
+              'piece-white': cell === 2,
+              'flipping': isFlipping(rowIndex, colIndex)
+            }"
           ></div>
-          <div v-else-if="isValidMove(rowIndex, colIndex)" class="valid-move-indicator"></div>
+          <div v-else-if="isValidMove(rowIndex, colIndex) && !isAnimating" class="valid-move-indicator"></div>
         </div>
       </div>
     </div>
@@ -60,6 +64,16 @@ const currentPlayer = ref<number>(BLACK); // 黒から始める
 const gameStatus = ref<'playing' | 'ended'>('playing'); // ゲームの状態を管理
 const playerColor = ref<number>(BLACK); // プレイヤーの色（ランダムに決定）
 
+// ひっくり返しアニメーション用の状態管理
+const flippingPieces = ref<Set<string>>(new Set());
+// アニメーション中かどうかを示す状態
+const isAnimating = ref<boolean>(false);
+
+// 指定された位置の駒がひっくり返し中かどうかをチェック
+const isFlipping = (row: number, col: number): boolean => {
+  return flippingPieces.value.has(`${row}-${col}`);
+};
+
 // 初期配置を設定する関数
 const initializeBoard = () => {
   // すべてのマスをクリア
@@ -79,6 +93,8 @@ const initializeBoard = () => {
   playerColor.value = Math.random() < 0.5 ? BLACK : WHITE;
   currentPlayer.value = BLACK; // 黒から始める
   gameStatus.value = 'playing'; // ゲーム状態をリセット
+  flippingPieces.value.clear(); // ひっくり返し状態をクリア
+  isAnimating.value = false; // アニメーション状態をリセット
 };
 
 // ゲームを初期化
@@ -218,9 +234,17 @@ const makeMove = (row: number, col: number) => {
     return;
   }
 
+  // アニメーション中は操作を受け付けない
+  if (isAnimating.value) {
+    return;
+  }
+
   if (!canPlaceAt(row, col)) {
     return; // 置けない場所なら何もしない
   }
+
+  // アニメーション開始状態に設定
+  isAnimating.value = true;
 
   const opponent = currentPlayer.value === BLACK ? WHITE : BLACK;
   const directions = [
@@ -231,6 +255,9 @@ const makeMove = (row: number, col: number) => {
 
   // 石を置く
   board.value[row][col] = currentPlayer.value;
+
+  // 全ての反転対象となるマスを収集
+  const allFlips: Array<{position: [number, number], distance: number}> = [];
 
   // 各方向について、ひっくり返せる石をチェック
   for (const [dx, dy] of directions) {
@@ -245,29 +272,73 @@ const makeMove = (row: number, col: number) => {
       y += dy;
     }
 
-    // 最後に自分の石があれば、間の石をすべてひっくり返す
+    // 最後に自分の石があれば、間の石をすべてリストに追加
     if (toFlip.length > 0 && x >= 0 && x < 8 && y >= 0 && y < 8 && board.value[x][y] === currentPlayer.value) {
-      for (const [fx, fy] of toFlip) {
-        board.value[fx][fy] = currentPlayer.value;
+      for (const pos of toFlip) {
+        // ユークリッド距離を計算（置いた場所からの直線距離）
+        const dx = pos[0] - row;
+        const dy = pos[1] - col;
+        const distance = Math.sqrt(dx * dx + dy * dy); // ユークリッド距離
+        allFlips.push({ position: pos, distance });
       }
     }
   }
 
-  // 次のプレイヤーに交代
-  currentPlayer.value = opponent;
+  // 距離でソート（近い順）
+  allFlips.sort((a, b) => a.distance - b.distance);
 
-  // 次のプレイヤーが石を置ける場所があるかチェック
-  if (!hasValidMove(currentPlayer.value)) {
-    // 次のプレイヤーが置けない場合、元のプレイヤーに戻す
-    currentPlayer.value = currentPlayer.value === BLACK ? WHITE : BLACK;
+  // 距離に応じて時間差でアニメーションを実行
+  let maxDelay = 0;
+  allFlips.forEach((flip) => {
+    const [fx, fy] = flip.position;
+    const key = `${fx}-${fy}`;
 
-    // さらにこのプレイヤーも置ける場所がなければゲーム終了
+    // 距離に応じて遅延時間を計算（同心円状に広がるように）
+    // 距離の整数部分 * 40ms の遅延を適用（60msから40msに短縮）
+    const delay = Math.floor(flip.distance * 40);
+    maxDelay = Math.max(maxDelay, delay);
+
+    // 遅延後にフリップアニメーション開始
+    setTimeout(() => {
+      flippingPieces.value.add(key);
+
+      // アニメーションが終わってから色を変更
+      setTimeout(() => {
+        board.value[fx][fy] = currentPlayer.value;
+
+        // アニメーション終了後にflippingPiecesから削除
+        setTimeout(() => {
+          flippingPieces.value.delete(key);
+        }, 30); // 50msから30msに短縮
+      }, 300); // 450msから300msに短縮（アニメーションの半分の時間後に色を変更）
+    }, delay);
+  });
+
+  // 次のプレイヤーに交代（全てのアニメーションが終わった後に実行するため遅延）
+  // 最大遅延時間 + アニメーション時間 + 待機時間
+  const animationDelay = maxDelay + 350; // 500msから350msに短縮
+  const pauseAfterAnimation = 300; // 500msから300msに短縮
+  const totalDelay = animationDelay + pauseAfterAnimation;
+
+  setTimeout(() => {
+    currentPlayer.value = opponent;
+
+    // 次のプレイヤーが石を置ける場所があるかチェック
     if (!hasValidMove(currentPlayer.value)) {
-      // ゲーム終了処理
-      gameStatus.value = 'ended';
-      console.log("ゲーム終了");
+      // 次のプレイヤーが置けない場合、元のプレイヤーに戻す
+      currentPlayer.value = currentPlayer.value === BLACK ? WHITE : BLACK;
+
+      // さらにこのプレイヤーも置ける場所がなければゲーム終了
+      if (!hasValidMove(currentPlayer.value)) {
+        // ゲーム終了処理
+        gameStatus.value = 'ended';
+        console.log("ゲーム終了");
+      }
     }
-  }
+
+    // アニメーション終了状態に設定
+    isAnimating.value = false;
+  }, totalDelay); // アニメーション完了＋待機時間後に次のターンに移る
 };
 
 // ゲームをリセットする関数
@@ -312,6 +383,7 @@ const resetGame = () => {
   height: 40px;
   border-radius: 50%;
   transition: all 0.3s ease;
+  transform-style: preserve-3d;
 }
 
 .piece-black {
@@ -322,6 +394,24 @@ const resetGame = () => {
 .piece-white {
   background-color: var(--white-piece);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ひっくり返しアニメーション */
+.flipping {
+  animation: flip-piece 0.35s cubic-bezier(0.42, 0, 0.58, 1); /* 0.5秒から0.35秒に短縮 */
+}
+
+@keyframes flip-piece {
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(90deg);
+    box-shadow: none;
+  }
+  100% {
+    transform: rotateY(0deg);
+  }
 }
 
 .valid-move {
