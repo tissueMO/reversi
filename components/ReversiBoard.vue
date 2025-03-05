@@ -1,5 +1,12 @@
 <template>
   <div class="reversi-board">
+    <div class="game-info top-info">
+      <div class="score opponent-score">
+        <div class="color-icon" :class="opponentColorClass"></div>
+        相手: {{ opponentCount }}
+      </div>
+    </div>
+
     <div class="board-container">
       <div
         v-for="(row, rowIndex) in board"
@@ -22,11 +29,13 @@
         </div>
       </div>
     </div>
-    <div class="game-info">
-      <div class="score">
-        <div class="score-black">黒: {{ blackCount }}</div>
-        <div class="score-white">白: {{ whiteCount }}</div>
+
+    <div class="game-info bottom-info">
+      <div class="score player-score">
+        <div class="color-icon" :class="playerColorClass"></div>
+        自分: {{ playerCount }}
       </div>
+
       <div class="turn-info">{{ currentTurnText }}</div>
       <div v-if="gameStatus === 'ended'" class="game-result">
         <div class="result-text">{{ gameResultText }}</div>
@@ -49,6 +58,7 @@ const WHITE = 2;
 const board = ref<number[][]>(Array(8).fill(0).map(() => Array(8).fill(EMPTY)));
 const currentPlayer = ref<number>(BLACK); // 黒から始める
 const gameStatus = ref<'playing' | 'ended'>('playing'); // ゲームの状態を管理
+const playerColor = ref<number>(BLACK); // プレイヤーの色（ランダムに決定）
 
 // 初期配置を設定する関数
 const initializeBoard = () => {
@@ -65,6 +75,8 @@ const initializeBoard = () => {
   board.value[4][3] = BLACK;
   board.value[4][4] = WHITE;
 
+  // ランダムに先手（黒）か後手（白）かを決定
+  playerColor.value = Math.random() < 0.5 ? BLACK : WHITE;
   currentPlayer.value = BLACK; // 黒から始める
   gameStatus.value = 'playing'; // ゲーム状態をリセット
 };
@@ -74,13 +86,31 @@ onMounted(() => {
   initializeBoard();
 });
 
-// 石の数をカウント
-const blackCount = computed(() => {
-  return board.value.flat().filter(cell => cell === BLACK).length;
+// プレイヤーとオポーネントの色テキスト
+const playerColorText = computed(() => {
+  return playerColor.value === BLACK ? "黒" : "白";
 });
 
-const whiteCount = computed(() => {
-  return board.value.flat().filter(cell => cell === WHITE).length;
+const opponentColorText = computed(() => {
+  return playerColor.value === BLACK ? "白" : "黒";
+});
+
+// プレイヤーとオポーネントの色クラス
+const playerColorClass = computed(() => {
+  return playerColor.value === BLACK ? "black-icon" : "white-icon";
+});
+
+const opponentColorClass = computed(() => {
+  return playerColor.value === BLACK ? "white-icon" : "black-icon";
+});
+
+// プレイヤーとオポーネントの石の数をカウント
+const playerCount = computed(() => {
+  return board.value.flat().filter(cell => cell === playerColor.value).length;
+});
+
+const opponentCount = computed(() => {
+  return board.value.flat().filter(cell => cell !== EMPTY && cell !== playerColor.value).length;
 });
 
 // 現在のターンを表示するテキスト
@@ -88,20 +118,26 @@ const currentTurnText = computed(() => {
   if (gameStatus.value === 'ended') {
     return "ゲーム終了";
   }
-  return currentPlayer.value === BLACK ? "黒の番です" : "白の番です";
+
+  if (currentPlayer.value === playerColor.value) {
+    return "あなたの番です";
+  } else {
+    return "相手の番です";
+  }
 });
 
 // ゲーム結果を表示するテキスト
 const gameResultText = computed(() => {
-  if (blackCount.value > whiteCount.value) {
-    return "黒の勝ち！";
-  } else if (whiteCount.value > blackCount.value) {
-    return "白の勝ち！";
+  if (playerCount.value > opponentCount.value) {
+    return "あなたの勝ち！";
+  } else if (opponentCount.value > playerCount.value) {
+    return "相手の勝ち！";
   } else {
     return "引き分け";
   }
 });
 
+// 以下は既存の関数
 // 指定位置に石を置くことができるかチェック
 const canPlaceAt = (row: number, col: number): boolean => {
   // すでに石がある場所には置けない
@@ -253,6 +289,7 @@ const resetGame = () => {
   padding: 10px;
   border-radius: 5px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  margin: 10px 0;
 }
 
 .board-row {
@@ -301,7 +338,6 @@ const resetGame = () => {
 }
 
 .game-info {
-  margin-top: 20px;
   width: 100%;
   max-width: 400px;
   display: flex;
@@ -309,17 +345,42 @@ const resetGame = () => {
   align-items: center;
 }
 
+.top-info {
+  margin-bottom: 10px;
+}
+
+.bottom-info {
+  margin-top: 10px;
+}
+
 .score {
   display: flex;
-  justify-content: space-around;
-  width: 100%;
-  margin-bottom: 10px;
+  align-items: center;
   font-size: 1.2rem;
   font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.color-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.black-icon {
+  background-color: var(--black-piece, #000);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.white-icon {
+  background-color: var(--white-piece, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border: 1px solid #ccc;
 }
 
 .turn-info {
-  margin-bottom: 15px;
+  margin: 15px 0;
   font-size: 1.2rem;
 }
 
