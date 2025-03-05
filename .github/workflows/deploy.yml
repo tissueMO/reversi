@@ -28,14 +28,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
-          cache: 'npm'
+          node-version: "20"
+          cache: 'yarn'
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
       - name: Static HTML generation with Nuxt
-        run: npm run generate
+        run: yarn generate
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
