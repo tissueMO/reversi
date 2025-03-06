@@ -3,11 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "dev": "yarn dev",
-    "build": "yarn build",
-    "generate": "yarn generate",
-    "preview": "yarn preview",
-    "lint": "yarn lint"
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "lint": "eslint ."
   },
   "dependencies": {
     "vue": "^3.3.4"
