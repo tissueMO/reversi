@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <header>
-      <h1>オセロゲーム</h1>
+      <h1>リバーシゲーム</h1>
     </header>
     <main>
       <ReversiBoard />

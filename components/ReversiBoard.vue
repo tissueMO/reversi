@@ -58,7 +58,7 @@ const EMPTY = 0;
 const BLACK = 1;
 const WHITE = 2;
 
-// 8x8のオセロ盤を初期化
+// 8x8のリバーシ盤を初期化
 const board = ref<number[][]>(Array(8).fill(0).map(() => Array(8).fill(EMPTY)));
 const currentPlayer = ref<number>(BLACK); // 黒から始める
 const gameStatus = ref<'playing' | 'ended'>('playing'); // ゲームの状態を管理
