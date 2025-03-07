@@ -1,13 +1,7 @@
-FROM node:20-alpine
+FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:22-bullseye
 
-WORKDIR /app
-
-COPY package*.json ./
-
-RUN yarn install
-
-COPY . .
-
+USER node
+WORKDIR /app/workspace
 EXPOSE 3000
 
-CMD ["yarn", "dev"]
+CMD ["bash"]

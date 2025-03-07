@@ -1,10 +1,14 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  compatibilityDate: '2025-03-07',
   devtools: { enabled: true },
+
   typescript: {
     strict: true
   },
+
   css: ['~/assets/css/main.css'],
+
   app: {
     head: {
       title: 'リバーシゲーム',
@@ -17,6 +21,7 @@ export default defineNuxtConfig({
     baseURL: process.env.NODE_ENV === 'production' ? '/reversi/' : '/',
     buildAssetsDir: 'assets'
   },
+
   // GitHub Pages（静的ホスティング）用にSSRを無効化
-  ssr: false
+  ssr: false,
 })

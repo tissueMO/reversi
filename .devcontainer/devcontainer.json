@@ -1,0 +1,27 @@
+{
+  "name": "Reversi Development",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/app/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "EditorConfig.EditorConfig",
+        "esbenp.prettier-vscode",
+        "Vue.volar",
+        "dbaeumer.vscode-eslint",
+        "vitest.explorer",
+        "mhutchie.git-graph"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": true
+        }
+      }
+    }
+  },
+  "postCreateCommand": "bash ./.devcontainer/postCreateCommand.sh",
+  "postStartCommand": "yarn dev"
+}

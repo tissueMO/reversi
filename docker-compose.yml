@@ -1,15 +1,22 @@
-version: '3'
-
+volumes:
+  node_modules:
+  nuxt:
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     volumes:
-      - .:/app
-      - /app/node_modules
+      - type: bind
+        source: ./
+        target: /app/workspace
+      - type: volume
+        source: node_modules
+        target: /app/workspace/node_modules
+      - type: volume
+        source: nuxt
+        target: /app/workspace/.nuxt
+    init: true
+    tty: true
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-    command: yarn dev
