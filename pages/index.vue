@@ -1,14 +1,8 @@
 <template>
   <div class="container">
-    <header>
-      <h1>リバーシゲーム</h1>
-    </header>
     <main>
       <ReversiBoard />
     </main>
-    <footer>
-      <p>&copy; 2023 リバーシゲーム</p>
-    </footer>
   </div>
 </template>
 
@@ -19,30 +13,21 @@
 <style scoped>
 .container {
   display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  padding: 20px;
-}
-
-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-h1 {
-  color: var(--primary-color);
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 main {
-  flex: 1;
   display: flex;
   justify-content: center;
-}
-
-footer {
-  text-align: center;
-  margin-top: 30px;
-  padding: 10px 0;
-  color: #666;
+  align-items: center;
+  width: 100%;
+  height: 100%;
 }
 </style>

@@ -1,9 +1,9 @@
 <template>
   <div class="reversi-board">
     <div class="game-info top-info">
-      <div class="score opponent-score">
+      <div class="score opponent-score" :class="{ 'current-turn': currentPlayer !== playerColor }">
         <div class="color-icon" :class="opponentColorClass"></div>
-        相手: {{ opponentCount }}
+        相手: {{ opponentCount }} <span v-if="currentPlayer !== playerColor" class="turn-mark">【手番】</span>
       </div>
     </div>
 
@@ -35,12 +35,11 @@
     </div>
 
     <div class="game-info bottom-info">
-      <div class="score player-score">
+      <div class="score player-score" :class="{ 'current-turn': currentPlayer === playerColor }">
         <div class="color-icon" :class="playerColorClass"></div>
-        自分: {{ playerCount }}
+        自分: {{ playerCount }} <span v-if="currentPlayer === playerColor" class="turn-mark">【手番】</span>
       </div>
 
-      <div class="turn-info">{{ currentTurnText }}</div>
       <div v-if="gameStatus === 'ended'" class="game-result">
         <div class="result-text">{{ gameResultText }}</div>
       </div>
@@ -352,35 +351,50 @@ const resetGame = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 20px auto;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .board-container {
   background-color: var(--board-color);
-  padding: 10px;
+  padding: 8px;
   border-radius: 5px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  margin: 10px 0;
+
+  /* サイズ計算を改善 - 正方形を保証し、はみ出しを防止 */
+  width: min(80vmin, calc(100vw - 40px), calc(100vh - 180px));
+  height: min(80vmin, calc(100vw - 40px), calc(100vh - 180px));
+
+  /* サイズ制約のmax-widthとmax-heightは不要なので削除 */
+
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .board-row {
   display: flex;
+  flex: 1;
 }
 
 .board-cell {
-  width: 50px;
-  height: 50px;
+  aspect-ratio: 1; /* 縦横比を1:1に保つ */
+  flex: 1;
   border: 1px solid #000;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #1B5E20;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .piece {
-  width: 40px;
-  height: 40px;
+  width: 80%;
+  height: 80%;
   border-radius: 50%;
   transition: all 0.3s ease;
   transform-style: preserve-3d;
@@ -398,7 +412,7 @@ const resetGame = () => {
 
 /* ひっくり返しアニメーション */
 .flipping {
-  animation: flip-piece 0.35s cubic-bezier(0.42, 0, 0.58, 1); /* 0.5秒から0.35秒に短縮 */
+  animation: flip-piece 0.35s cubic-bezier(0.42, 0, 0.58, 1);
 }
 
 @keyframes flip-piece {
@@ -420,8 +434,8 @@ const resetGame = () => {
 }
 
 .valid-move-indicator {
-  width: 16px;
-  height: 16px;
+  width: 30%;
+  height: 30%;
   border-radius: 50%;
   background-color: rgba(255, 255, 255, 0.4);
   position: absolute;
@@ -429,10 +443,10 @@ const resetGame = () => {
 
 .game-info {
   width: 100%;
-  max-width: 400px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin: 10px 0;
 }
 
 .top-info {
@@ -449,6 +463,18 @@ const resetGame = () => {
   font-size: 1.2rem;
   font-weight: bold;
   margin-bottom: 5px;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.current-turn {
+  background-color: rgba(76, 175, 80, 0.15);
+}
+
+.turn-mark {
+  margin-left: 6px;
+  font-weight: bold;
+  color: var(--primary-color);
 }
 
 .color-icon {
@@ -467,11 +493,6 @@ const resetGame = () => {
   background-color: var(--white-piece, #fff);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   border: 1px solid #ccc;
-}
-
-.turn-info {
-  margin: 15px 0;
-  font-size: 1.2rem;
 }
 
 .game-result {
