@@ -160,14 +160,14 @@ describe('ReversiBoard', () => {
       await wrapper.vm.$nextTick();
 
       // 初期状態ではプレイヤーのターン表示を確認（プレイヤーは黒）
-      expect(wrapper.find('.player-score').text()).toContain('【手番】');
-      expect(wrapper.find('.opponent-score').text()).not.toContain('【手番】');
+      expect(wrapper.find('.player-score').classes()).toContain('current-turn');
+      expect(wrapper.find('.opponent-score').classes()).not.toContain('current-turn');
 
       // 相手のターンに切り替え
       wrapper.vm.currentPlayer = 2;
       await wrapper.vm.$nextTick();
-      expect(wrapper.find('.player-score').text()).not.toContain('【手番】');
-      expect(wrapper.find('.opponent-score').text()).toContain('【手番】');
+      expect(wrapper.find('.player-score').classes()).not.toContain('current-turn');
+      expect(wrapper.find('.opponent-score').classes()).toContain('current-turn');
 
       // ゲーム終了状態
       wrapper.vm.gameStatus = 'ended';
