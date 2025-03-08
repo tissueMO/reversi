@@ -394,7 +394,7 @@ const resetGame = () => {
   align-items: center;
   justify-content: center;
   background-color: #1B5E20;
-  cursor: pointer;
+  cursor: default; /* デフォルトのカーソルをポインターから通常カーソルに変更 */
   box-sizing: border-box;
 }
 
@@ -436,7 +436,7 @@ const resetGame = () => {
 
 .valid-move {
   position: relative;
-  cursor: pointer;
+  cursor: pointer; /* 有効なマスだけポインターカーソルを維持 */
 }
 
 .valid-move-indicator {
