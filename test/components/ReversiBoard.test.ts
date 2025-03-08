@@ -159,18 +159,19 @@ describe('ReversiBoard', () => {
       const wrapper = mountBoard();
       await wrapper.vm.$nextTick();
 
-      // 初期状態ではプレイヤーのターン
-      expect(wrapper.find('.turn-info').text()).toBe('あなたの番です');
+      // 初期状態ではプレイヤーのターン表示を確認（プレイヤーは黒）
+      expect(wrapper.find('.player-score').text()).toContain('【手番】');
+      expect(wrapper.find('.opponent-score').text()).not.toContain('【手番】');
 
       // 相手のターンに切り替え
       wrapper.vm.currentPlayer = 2;
       await wrapper.vm.$nextTick();
-      expect(wrapper.find('.turn-info').text()).toBe('相手の番です');
+      expect(wrapper.find('.player-score').text()).not.toContain('【手番】');
+      expect(wrapper.find('.opponent-score').text()).toContain('【手番】');
 
       // ゲーム終了状態
       wrapper.vm.gameStatus = 'ended';
       await wrapper.vm.$nextTick();
-      expect(wrapper.find('.turn-info').text()).toBe('ゲーム終了');
       expect(wrapper.find('.game-result').exists()).toBe(true);
       expect(wrapper.find('.result-text').text()).toBe('引き分け');
 

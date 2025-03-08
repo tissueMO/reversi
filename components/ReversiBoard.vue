@@ -2,8 +2,12 @@
   <div class="reversi-board">
     <div class="game-info top-info">
       <div class="score opponent-score" :class="{ 'current-turn': currentPlayer !== playerColor }">
-        <div class="color-icon" :class="opponentColorClass"></div>
-        相手: {{ opponentCount }} <span v-if="currentPlayer !== playerColor" class="turn-mark">【手番】</span>
+        <div class="score-content">
+          <div class="score-icon-and-count">
+            <div class="color-icon" :class="opponentColorClass"></div>
+            <div class="score-text">相手: <span class="count-display">{{ opponentCount }}</span></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -36,8 +40,12 @@
 
     <div class="game-info bottom-info">
       <div class="score player-score" :class="{ 'current-turn': currentPlayer === playerColor }">
-        <div class="color-icon" :class="playerColorClass"></div>
-        自分: {{ playerCount }} <span v-if="currentPlayer === playerColor" class="turn-mark">【手番】</span>
+        <div class="score-content">
+          <div class="score-icon-and-count">
+            <div class="color-icon" :class="playerColorClass"></div>
+            <div class="score-text">自分: <span class="count-display">{{ playerCount }}</span></div>
+          </div>
+        </div>
       </div>
 
       <div v-if="gameStatus === 'ended'" class="game-result">
@@ -364,11 +372,9 @@ const resetGame = () => {
   border-radius: 5px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 
-  /* サイズ計算を改善 - 正方形を保証し、はみ出しを防止 */
-  width: min(80vmin, calc(100vw - 40px), calc(100vh - 180px));
-  height: min(80vmin, calc(100vw - 40px), calc(100vh - 180px));
-
-  /* サイズ制約のmax-widthとmax-heightは不要なので削除 */
+  /* サイズ計算を改善 - 正方形を保証し、はみ出しを防止、最大サイズを600x600に制限 */
+  width: min(600px, 80vmin, calc(100vw - 40px), calc(100vh - 180px));
+  height: min(600px, 80vmin, calc(100vw - 40px), calc(100vh - 180px));
 
   display: flex;
   flex-direction: column;
@@ -447,6 +453,7 @@ const resetGame = () => {
   flex-direction: column;
   align-items: center;
   margin: 10px 0;
+  max-width: 600px; /* スコア表示の最大幅を設定 */
 }
 
 .top-info {
@@ -458,23 +465,43 @@ const resetGame = () => {
 }
 
 .score {
-  display: flex;
-  align-items: center;
+  width: 100%;
   font-size: 1.2rem;
   font-weight: bold;
   margin-bottom: 5px;
-  padding: 5px 10px;
+  padding: 5px 15px;
   border-radius: 4px;
+  box-sizing: border-box;
+  max-width: 200px; /* スコア表示幅をさらに縮小 */
+  transition: background-color 0.6s ease, box-shadow 0.6s ease; /* フェード効果を追加 */
+}
+
+.score-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.score-icon-and-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-text {
+  white-space: nowrap;
+}
+
+.count-display {
+  display: inline-block;
+  min-width: 24px; /* 3桁まで入る幅 */
+  text-align: right;
 }
 
 .current-turn {
-  background-color: rgba(76, 175, 80, 0.15);
-}
-
-.turn-mark {
-  margin-left: 6px;
-  font-weight: bold;
-  color: var(--primary-color);
+  background-color: rgba(76, 175, 80, 0.3); /* ハイライトをより強調 */
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5); /* 少し目立つ効果を追加 */
 }
 
 .color-icon {
