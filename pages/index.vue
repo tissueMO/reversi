@@ -7,10 +7,18 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * リバーシゲームのメインページ
+ * ゲームボードコンポーネントを中央に配置する
+ */
 // ReversiBoard コンポーネントは自動的にインポートされます
 </script>
 
 <style scoped>
+/**
+ * ゲームのコンテナスタイル
+ * 画面全体にゲームを表示し、中央配置する
+ */
 .container {
   display: flex;
   justify-content: center;
@@ -23,6 +31,10 @@
   box-sizing: border-box;
 }
 
+/**
+ * メインコンテンツ領域
+ * ゲームボードを中央に配置するための領域
+ */
 main {
   display: flex;
   justify-content: center;

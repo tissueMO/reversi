@@ -4,13 +4,14 @@
       <div class="score opponent-score" :class="{ 'current-turn': currentPlayer !== playerColor }">
         <div class="score-content">
           <div class="score-icon-and-count">
-            <div class="color-icon" :class="opponentColorClass"></div>
-            <div class="score-text">相手: <span class="count-display">{{ opponentCount }}</span></div>
+            <div class="color-icon" :class="opponentColorClass" />
+            <div class="score-text">
+              相手: <span class="count-display">{{ opponentCount }}</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
-
     <div class="board-container">
       <div
         v-for="(row, rowIndex) in board"
@@ -32,165 +33,197 @@
               'piece-white': cell === 2,
               'flipping': isFlipping(rowIndex, colIndex)
             }"
-          ></div>
-          <div v-else-if="isValidMove(rowIndex, colIndex) && !isAnimating" class="valid-move-indicator"></div>
+          />
+          <div v-else-if="isValidMove(rowIndex, colIndex) && !isAnimating" class="valid-move-indicator" />
         </div>
       </div>
     </div>
-
     <div class="game-info bottom-info">
       <div class="score player-score" :class="{ 'current-turn': currentPlayer === playerColor }">
         <div class="score-content">
           <div class="score-icon-and-count">
-            <div class="color-icon" :class="playerColorClass"></div>
-            <div class="score-text">自分: <span class="count-display">{{ playerCount }}</span></div>
+            <div class="color-icon" :class="playerColorClass" />
+            <div class="score-text">
+              自分: <span class="count-display">{{ playerCount }}</span>
+            </div>
           </div>
         </div>
       </div>
-
       <div v-if="gameStatus === 'ended'" class="game-result">
-        <div class="result-text">{{ gameResultText }}</div>
+        <div class="result-text">
+          {{ gameResultText }}
+        </div>
       </div>
-      <button @click="resetGame" class="reset-button">ゲームをリセット</button>
+      <button class="reset-button" @click="resetGame">
+        ゲームをリセット
+      </button>
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 
-// 盤面の状態を管理
-// 0: 空, 1: 黒, 2: 白
+/**
+ * ゲームの基本定数
+ */
 const EMPTY = 0;
 const BLACK = 1;
 const WHITE = 2;
 
-// 8x8のリバーシ盤を初期化
-const board = ref<number[][]>(Array(8).fill(0).map(() => Array(8).fill(EMPTY)));
-const currentPlayer = ref<number>(BLACK); // 黒から始める
-const gameStatus = ref<'playing' | 'ended'>('playing'); // ゲームの状態を管理
-const playerColor = ref<number>(BLACK); // プレイヤーの色（ランダムに決定）
+/**
+ * ゲームの状態を表す型
+ */
+type GameStatus = 'playing' | 'ended';
 
-// ひっくり返しアニメーション用の状態管理
+/**
+ * 盤面の状態を管理するデータ構造
+ * 0: 空, 1: 黒, 2: 白
+ */
+const board = ref<number[][]>(Array(8).fill(0).map(() => Array(8).fill(EMPTY)));
+
+/**
+ * 現在の手番プレイヤーを保持
+ */
+const currentPlayer = ref<number>(BLACK);
+
+/**
+ * ゲームの進行状態を管理
+ */
+const gameStatus = ref<GameStatus>('playing');
+
+/**
+ * プレイヤーが操作する石の色
+ */
+const playerColor = ref<number>(BLACK);
+
+/**
+ * アニメーション中の駒を管理するためのセット
+ */
 const flippingPieces = ref<Set<string>>(new Set());
-// アニメーション中かどうかを示す状態
+
+/**
+ * アニメーション実行中かどうかのフラグ
+ */
 const isAnimating = ref<boolean>(false);
 
-// 指定された位置の駒がひっくり返し中かどうかをチェック
+/**
+ * 指定位置の駒がアニメーション中かを判定
+ */
 const isFlipping = (row: number, col: number): boolean => {
   return flippingPieces.value.has(`${row}-${col}`);
 };
 
-// 初期配置を設定する関数
-const initializeBoard = () => {
-  // すべてのマスをクリア
+/**
+ * ゲームボードを初期状態に設定
+ */
+const initializeBoard = (): void => {
+  // 全マスをクリア
   for (let i = 0; i < 8; i++) {
     for (let j = 0; j < 8; j++) {
       board.value[i][j] = EMPTY;
     }
   }
 
-  // 初期の4つの石を配置
+  // リバーシの初期配置（中央に黒白が交互に配置される）
   board.value[3][3] = WHITE;
   board.value[3][4] = BLACK;
   board.value[4][3] = BLACK;
   board.value[4][4] = WHITE;
 
-  // ランダムに先手（黒）か後手（白）かを決定
+  // プレイヤーの色をランダムに決定（対戦性の確保）
   playerColor.value = Math.random() < 0.5 ? BLACK : WHITE;
-  currentPlayer.value = BLACK; // 黒から始める
-  gameStatus.value = 'playing'; // ゲーム状態をリセット
-  flippingPieces.value.clear(); // ひっくり返し状態をクリア
-  isAnimating.value = false; // アニメーション状態をリセット
+
+  // ゲーム開始時は常に黒から
+  currentPlayer.value = BLACK;
+
+  // ゲーム状態の初期化
+  gameStatus.value = 'playing';
+  flippingPieces.value.clear();
+  isAnimating.value = false;
 };
 
-// ゲームを初期化
+/**
+ * コンポーネントマウント時の初期化処理
+ */
 onMounted(() => {
   initializeBoard();
 });
 
-// プレイヤーとオポーネントの色テキスト
-const playerColorText = computed(() => {
-  return playerColor.value === BLACK ? "黒" : "白";
+/**
+ * プレイヤー色に対応するCSSクラス
+ */
+const playerColorClass = computed((): string => {
+  return playerColor.value === BLACK ? 'black-icon' : 'white-icon';
 });
 
-const opponentColorText = computed(() => {
-  return playerColor.value === BLACK ? "白" : "黒";
+/**
+ * 相手色に対応するCSSクラス
+ */
+const opponentColorClass = computed((): string => {
+  return playerColor.value === BLACK ? 'white-icon' : 'black-icon';
 });
 
-// プレイヤーとオポーネントの色クラス
-const playerColorClass = computed(() => {
-  return playerColor.value === BLACK ? "black-icon" : "white-icon";
-});
-
-const opponentColorClass = computed(() => {
-  return playerColor.value === BLACK ? "white-icon" : "black-icon";
-});
-
-// プレイヤーとオポーネントの石の数をカウント
-const playerCount = computed(() => {
+/**
+ * プレイヤーの石の数
+ */
+const playerCount = computed((): number => {
   return board.value.flat().filter(cell => cell === playerColor.value).length;
 });
 
-const opponentCount = computed(() => {
+/**
+ * 相手の石の数
+ */
+const opponentCount = computed((): number => {
   return board.value.flat().filter(cell => cell !== EMPTY && cell !== playerColor.value).length;
 });
 
-// 現在のターンを表示するテキスト
-const currentTurnText = computed(() => {
-  if (gameStatus.value === 'ended') {
-    return "ゲーム終了";
-  }
-
-  if (currentPlayer.value === playerColor.value) {
-    return "あなたの番です";
-  } else {
-    return "相手の番です";
-  }
-});
-
-// ゲーム結果を表示するテキスト
-const gameResultText = computed(() => {
+/**
+ * ゲーム結果のテキスト
+ */
+const gameResultText = computed((): string => {
   if (playerCount.value > opponentCount.value) {
-    return "あなたの勝ち！";
+    return 'あなたの勝ち！';
   } else if (opponentCount.value > playerCount.value) {
-    return "相手の勝ち！";
+    return '相手の勝ち！';
   } else {
-    return "引き分け";
+    return '引き分け';
   }
 });
 
-// 以下は既存の関数
-// 指定位置に石を置くことができるかチェック
+/**
+ * 指定位置に石を置けるかの判定
+ */
 const canPlaceAt = (row: number, col: number): boolean => {
-  // すでに石がある場所には置けない
+  // すでに石があるマスには置けない
   if (board.value[row][col] !== EMPTY) {
     return false;
   }
 
   const opponent = currentPlayer.value === BLACK ? WHITE : BLACK;
+
+  // 8方向のベクトル定義
   const directions = [
     [-1, -1], [-1, 0], [-1, 1],
-    [0, -1],           [0, 1],
-    [1, -1],  [1, 0],  [1, 1]
+    [0, -1], [0, 1],
+    [1, -1], [1, 0], [1, 1],
   ];
 
   let canPlace = false;
 
-  // 8方向をチェック
+  // 各方向について、挟める石があるかを確認
   for (const [dx, dy] of directions) {
     let x = row + dx;
     let y = col + dy;
     let flips = 0;
 
-    // 盤面内で、隣が相手の石である限り進む
+    // 盤面内かつ相手の石が続く限り進む
     while (x >= 0 && x < 8 && y >= 0 && y < 8 && board.value[x][y] === opponent) {
       x += dx;
       y += dy;
       flips++;
     }
 
-    // 最後に自分の石があれば、その方向はOK
+    // 1つ以上の石を挟み、最後に自分の石があれば有効な手
     if (flips > 0 && x >= 0 && x < 8 && y >= 0 && y < 8 && board.value[x][y] === currentPlayer.value) {
       canPlace = true;
       break;
@@ -200,33 +233,39 @@ const canPlaceAt = (row: number, col: number): boolean => {
   return canPlace;
 };
 
-// プレイヤーが石を置ける場所があるかチェック
+/**
+ * 指定プレイヤーが有効な手を持っているかを判定
+ */
 const hasValidMove = (player: number): boolean => {
+  // 一時的に手番を変更して全マスをチェック
+  const originalPlayer = currentPlayer.value;
+  currentPlayer.value = player;
+
   for (let i = 0; i < 8; i++) {
     for (let j = 0; j < 8; j++) {
-      if (board.value[i][j] === EMPTY) {
-        // 一時的に currentPlayer を変更してチェック
-        const originalPlayer = currentPlayer.value;
-        currentPlayer.value = player;
-        const canPlace = canPlaceAt(i, j);
-        currentPlayer.value = originalPlayer; // 元に戻す
-        if (canPlace) {
-          return true;
-        }
+      if (board.value[i][j] === EMPTY && canPlaceAt(i, j)) {
+        // 元の手番に戻して有効な手があることを返す
+        currentPlayer.value = originalPlayer;
+        return true;
       }
     }
   }
+
+  // 元の手番に戻して有効な手がないことを返す
+  currentPlayer.value = originalPlayer;
   return false;
 };
 
-// プレイヤーが指定された位置に石を置けるかをチェック（ハイライト用）
+/**
+ * UI表示のための有効な手の判定
+ */
 const isValidMove = (row: number, col: number): boolean => {
-  // ゲームが終了している場合はfalse
+  // ゲーム終了時は全ての手が無効
   if (gameStatus.value === 'ended') {
     return false;
   }
 
-  // すでに石がある場所には置けない
+  // すでに石があるマスは無効
   if (board.value[row][col] !== EMPTY) {
     return false;
   }
@@ -234,126 +273,123 @@ const isValidMove = (row: number, col: number): boolean => {
   return canPlaceAt(row, col);
 };
 
-// 石を置く処理
-const makeMove = (row: number, col: number) => {
-  // ゲームが終了していたら何もしない
-  if (gameStatus.value === 'ended') {
+/**
+ * 指定位置に石を置く処理
+ */
+const makeMove = (row: number, col: number): void => {
+  // ゲーム終了時またはアニメーション中は操作無効
+  if (gameStatus.value === 'ended' || isAnimating.value) {
     return;
   }
 
-  // アニメーション中は操作を受け付けない
-  if (isAnimating.value) {
-    return;
-  }
-
+  // 有効な手でない場合は無視
   if (!canPlaceAt(row, col)) {
-    return; // 置けない場所なら何もしない
+    return;
   }
 
-  // アニメーション開始状態に設定
+  // アニメーション状態に移行
   isAnimating.value = true;
 
   const opponent = currentPlayer.value === BLACK ? WHITE : BLACK;
+
+  // 8方向のベクトル定義
   const directions = [
     [-1, -1], [-1, 0], [-1, 1],
-    [0, -1],           [0, 1],
-    [1, -1],  [1, 0],  [1, 1]
+    [0, -1], [0, 1],
+    [1, -1], [1, 0], [1, 1],
   ];
 
-  // 石を置く
+  // 石を置いた位置を更新
   board.value[row][col] = currentPlayer.value;
 
-  // 全ての反転対象となるマスを収集
+  // 反転対象となる石の情報を収集
   const allFlips: Array<{position: [number, number], distance: number}> = [];
 
-  // 各方向について、ひっくり返せる石をチェック
+  // 各方向について反転すべき石を特定
   for (const [dx, dy] of directions) {
     let x = row + dx;
     let y = col + dy;
     const toFlip: [number, number][] = [];
 
-    // 盤面内で、隣が相手の石である限り進む
+    // 相手の石が続く限り進む
     while (x >= 0 && x < 8 && y >= 0 && y < 8 && board.value[x][y] === opponent) {
       toFlip.push([x, y]);
       x += dx;
       y += dy;
     }
 
-    // 最後に自分の石があれば、間の石をすべてリストに追加
+    // 最後に自分の石があれば、間の石を全て反転対象に
     if (toFlip.length > 0 && x >= 0 && x < 8 && y >= 0 && y < 8 && board.value[x][y] === currentPlayer.value) {
       for (const pos of toFlip) {
-        // ユークリッド距離を計算（置いた場所からの直線距離）
+        // 置いた位置からの距離を計算（アニメーション順序用）
         const dx = pos[0] - row;
         const dy = pos[1] - col;
-        const distance = Math.sqrt(dx * dx + dy * dy); // ユークリッド距離
+        const distance = Math.sqrt(dx * dx + dy * dy);
         allFlips.push({ position: pos, distance });
       }
     }
   }
 
-  // 距離でソート（近い順）
+  // 距離の近い順に並べ替え
   allFlips.sort((a, b) => a.distance - b.distance);
 
-  // 距離に応じて時間差でアニメーションを実行
+  // 同心円状に広がるアニメーションの実行
   let maxDelay = 0;
   allFlips.forEach((flip) => {
     const [fx, fy] = flip.position;
     const key = `${fx}-${fy}`;
-
-    // 距離に応じて遅延時間を計算（同心円状に広がるように）
-    // 距離の整数部分 * 40ms の遅延を適用（60msから40msに短縮）
+    // 距離に応じた遅延でアニメーション
     const delay = Math.floor(flip.distance * 40);
     maxDelay = Math.max(maxDelay, delay);
 
-    // 遅延後にフリップアニメーション開始
+    // アニメーション開始
     setTimeout(() => {
       flippingPieces.value.add(key);
 
-      // アニメーションが終わってから色を変更
+      // アニメーション途中で色変更
       setTimeout(() => {
         board.value[fx][fy] = currentPlayer.value;
 
-        // アニメーション終了後にflippingPiecesから削除
+        // アニメーション終了時に状態を更新
         setTimeout(() => {
           flippingPieces.value.delete(key);
-        }, 30); // 50msから30msに短縮
-      }, 300); // 450msから300msに短縮（アニメーションの半分の時間後に色を変更）
+        }, 30);
+      }, 300);
     }, delay);
   });
 
-  // 次のプレイヤーに交代（全てのアニメーションが終わった後に実行するため遅延）
-  // 最大遅延時間 + アニメーション時間 + 待機時間
-  const animationDelay = maxDelay + 350; // 500msから350msに短縮
-  const pauseAfterAnimation = 300; // 500msから300msに短縮
+  // 全てのアニメーション完了後に次のターンへ
+  const animationDelay = maxDelay + 350;
+  const pauseAfterAnimation = 300;
   const totalDelay = animationDelay + pauseAfterAnimation;
 
   setTimeout(() => {
+    // 手番を切り替え
     currentPlayer.value = opponent;
 
-    // 次のプレイヤーが石を置ける場所があるかチェック
+    // ターン処理とゲーム終了判定
     if (!hasValidMove(currentPlayer.value)) {
-      // 次のプレイヤーが置けない場合、元のプレイヤーに戻す
+      // 次のプレイヤーに有効な手がなければ、元のプレイヤーに戻す
       currentPlayer.value = currentPlayer.value === BLACK ? WHITE : BLACK;
 
-      // さらにこのプレイヤーも置ける場所がなければゲーム終了
+      // さらに元のプレイヤーも置ける場所がなければゲーム終了
       if (!hasValidMove(currentPlayer.value)) {
-        // ゲーム終了処理
         gameStatus.value = 'ended';
-        console.log("ゲーム終了");
       }
     }
 
-    // アニメーション終了状態に設定
+    // アニメーション状態を終了
     isAnimating.value = false;
-  }, totalDelay); // アニメーション完了＋待機時間後に次のターンに移る
+  }, totalDelay);
 };
 
-// ゲームをリセットする関数
-const resetGame = () => {
+/**
+ * ゲームを初期状態にリセット
+ */
+const resetGame = (): void => {
   initializeBoard();
 };
 </script>
-
 <style scoped>
 .reversi-board {
   display: flex;
