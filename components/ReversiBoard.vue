@@ -3,7 +3,7 @@
     <div class="game-info top-info">
       <div class="score opponent-score" :class="{ 'current-turn': currentPlayer !== playerColor }">
         <div class="score-content">
-          <div class="score-icon-and-count">
+          <div class="score-icon-and-count" :class="{ 'rotated': isMobileDevice }">
             <div class="color-icon" :class="opponentColorClass" />
             <div class="score-text">
               相手: <span class="count-display">{{ opponentCount }}</span>
@@ -54,7 +54,7 @@
           {{ gameResultText }}
         </div>
       </div>
-      <button class="reset-button" @click="resetGame">
+      <button v-if="!isMobileDevice" class="reset-button" @click="resetGame">
         ゲームをリセット
       </button>
     </div>
@@ -69,6 +69,21 @@ import { ref, computed, onMounted, onUnmounted, defineExpose } from 'vue';
 const EMPTY = 0;
 const BLACK = 1;
 const WHITE = 2;
+
+/**
+ * デバイスがモバイルかどうかを判定
+ */
+const isMobileDevice = ref<boolean>(false);
+
+/**
+ * デバイスタイプの検出
+ */
+const detectDeviceType = (): void => {
+  if (typeof window !== 'undefined') {
+    const userAgent = navigator.userAgent || navigator.vendor;
+    isMobileDevice.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  }
+};
 
 /**
  * ゲームの状態を表す型
@@ -265,6 +280,10 @@ const generateEndGamePosition = (emptyCount: number): void => {
  */
 onMounted(() => {
   initializeBoard();
+  detectDeviceType();
+
+  // ウィンドウサイズが変更された場合にデバイスタイプを再検出
+  window.addEventListener('resize', detectDeviceType);
 
   // デバッグ用のグローバル関数を登録
   if (typeof window !== 'undefined') {
@@ -287,6 +306,9 @@ onMounted(() => {
  * コンポーネントのアンマウント時のクリーンアップ処理
  */
 onUnmounted(() => {
+  // イベントリスナーを削除
+  window.removeEventListener('resize', detectDeviceType);
+
   // デバッグ用のグローバル関数を削除
   if (typeof window !== 'undefined') {
     // @ts-ignore - 実行時にwindowオブジェクトからプロパティを削除
@@ -654,28 +676,27 @@ const setPlayer = (playerNum: number): void => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 10px 0;
   max-width: 600px; /* スコア表示の最大幅を設定 */
 }
 
 .top-info {
-  margin-bottom: 10px;
+  margin-bottom: 15px;
 }
 
 .bottom-info {
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 .score {
   width: 100%;
   font-size: 1.2rem;
   font-weight: bold;
-  margin-bottom: 5px;
   padding: 5px 15px;
   border-radius: 4px;
   box-sizing: border-box;
-  max-width: 200px; /* スコア表示幅をさらに縮小 */
-  transition: background-color 0.6s ease, box-shadow 0.6s ease; /* フェード効果を追加 */
+  max-width: 200px;
+  transition: background-color 0.6s ease, box-shadow 0.6s ease;
+  margin: 0;
 }
 
 .score-content {
@@ -689,6 +710,11 @@ const setPlayer = (playerNum: number): void => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 相手のスコア表示を180度回転させる（モバイル時のみ） */
+.rotated {
+  transform: rotate(180deg);
 }
 
 .score-text {
