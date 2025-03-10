@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import type { VueWrapper } from '@vue/test-utils';
 import ReversiBoard from '../../components/ReversiBoard.vue';
 
 describe('ReversiBoard', () => {
   /**
    * テストのためのコンポーネントをマウント
    * DOM操作を必要とするテスト向けにdocument.bodyにアタッチする
+   * 戻り値の型にコンポーネントの内部メソッドや変数の型情報を含める
    */
-  function mountBoard () {
+  function mountBoard (): VueWrapper<InstanceType<typeof ReversiBoard>> {
     return mount(ReversiBoard, {
       attachTo: document.body,
     });
@@ -211,6 +213,82 @@ describe('ReversiBoard', () => {
       wrapper.vm.playerColor = 2; // WHITE
       expect(wrapper.vm.playerColorClass).toBe('white-icon');
       expect(wrapper.vm.opponentColorClass).toBe('black-icon');
+    });
+  });
+
+  describe('デバッグ機能', () => {
+    it('skipToEndGame関数が正しく終盤状態を生成する', async () => {
+      const wrapper = mountBoard();
+      await wrapper.vm.$nextTick();
+
+      // 初期状態での空きマスの数を取得
+      const initialEmptyCells = wrapper.vm.board.flat().filter(cell => cell === 0).length;
+      expect(initialEmptyCells).toBe(60); // 初期状態では4つの石があるので60マスが空
+
+      // ゲーム終了2手前の状態にスキップ
+      await wrapper.vm.skipToEndGame();
+
+      // アニメーションの終了を待つ
+      vi.advanceTimersByTime(500);
+
+      // 空きマスが2つだけ残っていることを確認
+      const remainingEmptyCells = wrapper.vm.board.flat().filter(cell => cell === 0).length;
+      expect(remainingEmptyCells).toBe(2);
+
+      // 有効な手がある場合は、ゲームが続行していることを確認
+      if (wrapper.vm.hasValidMove(wrapper.vm.currentPlayer)) {
+        expect(wrapper.vm.gameStatus).toBe('playing');
+      } else {
+        // 両プレイヤーとも打てる手がなければゲーム終了していることを確認
+        expect(wrapper.vm.gameStatus).toBe('ended');
+      }
+    });
+
+    it('既にゲーム終了2手前以降の場合はskipToEndGameは何も変更しない', async () => {
+      const wrapper = mountBoard();
+      await wrapper.vm.$nextTick();
+
+      // 事前に終盤状態を生成（空きマスが2つの状態）
+      for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+          if (!(i === 7 && j === 7) && !(i === 7 && j === 6)) { // 2マスだけ空きとして残す
+            wrapper.vm.board[i][j] = (i + j) % 2 + 1; // 交互に黒と白を配置
+          }
+        }
+      }
+
+      // 盤面の状態を保存
+      const boardSnapshot = JSON.stringify(wrapper.vm.board);
+
+      // skipToEndGameを呼び出す
+      await wrapper.vm.skipToEndGame();
+
+      // アニメーションの終了を待つ
+      vi.advanceTimersByTime(500);
+
+      // 盤面に変更がないことを確認
+      expect(JSON.stringify(wrapper.vm.board)).toBe(boardSnapshot);
+    });
+
+    it('generateEndGamePositionは有効な終盤状態を生成する', () => {
+      const wrapper = mountBoard();
+
+      // 終盤状態を生成（5つの空きマス）
+      wrapper.vm.generateEndGamePosition(5);
+
+      // 指定した数の空きマスが残っていることを確認
+      const emptyCells = wrapper.vm.board.flat().filter(cell => cell === 0).length;
+      expect(emptyCells).toBe(5);
+
+      // 黒と白の石がバランス良く配置されていることを確認
+      const blackCount = wrapper.vm.board.flat().filter(cell => cell === 1).length;
+      const whiteCount = wrapper.vm.board.flat().filter(cell => cell === 2).length;
+
+      // 合計数が盤面サイズに一致
+      expect(blackCount + whiteCount + emptyCells).toBe(64);
+
+      // 黒と白の石の数の差が1以内
+      expect(Math.abs(blackCount - whiteCount)).toBeLessThanOrEqual(1);
     });
   });
 

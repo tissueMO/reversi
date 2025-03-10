@@ -1,5 +1,5 @@
 <template>
-  <div class="reversi-board">
+  <div ref="boardRef" class="reversi-board">
     <div class="game-info top-info">
       <div class="score opponent-score" :class="{ 'current-turn': currentPlayer !== playerColor }">
         <div class="score-content">
@@ -61,7 +61,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, defineExpose } from 'vue';
 
 /**
  * ゲームの基本定数
@@ -143,10 +143,155 @@ const initializeBoard = (): void => {
 };
 
 /**
+ * ゲームボードのDOM要素への参照
+ */
+const boardRef = ref<HTMLElement | null>(null);
+
+/**
+ * ゲーム終了2手前の状態に設定
+ */
+const skipToEndGame = (): void => {
+  // アニメーション中の場合は処理を行わない
+  if (isAnimating.value) {
+    return;
+  }
+
+  // アニメーション状態に移行
+  isAnimating.value = true;
+
+  // 空きマス数をカウントして、2手前の状態を計算
+  const remainingEmptyCells = board.value.flat().filter(cell => cell === EMPTY).length;
+
+  if (remainingEmptyCells <= 2) {
+    // 既にゲーム終了2手前以降の場合は何もしない
+    isAnimating.value = false;
+    return;
+  }
+
+  // ゲーム盤面を終盤状態に設定
+  generateEndGamePosition(2); // 空きマスを必ず2つにする
+
+  // 状態更新後のディレイ
+  setTimeout(() => {
+    // ターン処理とゲーム終了判定
+    if (!hasValidMove(currentPlayer.value)) {
+      // 次のプレイヤーに有効な手がなければ、相手プレイヤーに戻す
+      currentPlayer.value = currentPlayer.value === BLACK ? WHITE : BLACK;
+
+      // さらに有効な手がなければゲーム終了
+      if (!hasValidMove(currentPlayer.value)) {
+        gameStatus.value = 'ended';
+      }
+    }
+
+    // アニメーション状態を終了
+    isAnimating.value = false;
+  }, 500);
+};
+
+/**
+ * 終盤の盤面状態を生成する
+ * @param emptyCount 残す空きマスの数
+ */
+const generateEndGamePosition = (emptyCount: number): void => {
+  // 盤面をほぼ埋め尽くした状態にする
+  const totalCells = 64; // 8x8の盤面
+  const blackCount = Math.floor((totalCells - emptyCount) / 2);
+  const whiteCount = totalCells - emptyCount - blackCount;
+
+  // 一度盤面をクリア
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      board.value[i][j] = EMPTY;
+    }
+  }
+
+  // まずemptyCountの数だけ空きマスの位置を決める
+  const emptyCells: [number, number][] = [];
+  while (emptyCells.length < emptyCount) {
+    const row = Math.floor(Math.random() * 8);
+    const col = Math.floor(Math.random() * 8);
+    // 既に選ばれていない位置を追加
+    if (!emptyCells.some(([r, c]) => r === row && c === col)) {
+      emptyCells.push([row, col]);
+    }
+  }
+
+  // 残りのマスに黒石と白石を配置
+  let remainingBlack = blackCount;
+  let remainingWhite = whiteCount;
+
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      // 空きマスに指定された位置はスキップ
+      if (emptyCells.some(([r, c]) => r === i && c === j)) {
+        continue;
+      }
+
+      // すべての石を配置し終えたら終了
+      if (remainingBlack === 0 && remainingWhite === 0) {
+        break;
+      }
+
+      // ランダムに石を配置
+      const rand = Math.random();
+
+      if (rand < 0.5 && remainingBlack > 0) {
+        board.value[i][j] = BLACK;
+        remainingBlack--;
+      } else if (remainingWhite > 0) {
+        board.value[i][j] = WHITE;
+        remainingWhite--;
+      } else if (remainingBlack > 0) {
+        board.value[i][j] = BLACK;
+        remainingBlack--;
+      }
+    }
+  }
+
+  // 有効な手があるプレイヤーを探して手番を設定
+  if (hasValidMove(BLACK)) {
+    currentPlayer.value = BLACK;
+  } else if (hasValidMove(WHITE)) {
+    currentPlayer.value = WHITE;
+  } else {
+    // 両プレイヤーとも置けない場合はゲーム終了
+    gameStatus.value = 'ended';
+  }
+};
+
+/**
  * コンポーネントマウント時の初期化処理
  */
 onMounted(() => {
   initializeBoard();
+
+  // デバッグ用のグローバル関数を登録
+  if (typeof window !== 'undefined') {
+    // @ts-ignore - 実行時にwindowオブジェクトに動的にプロパティを追加
+    window.__reversiDebug = {
+      skipToEndGame,
+      forceGameEnd,
+      setPlayer,
+    };
+    console.info(
+      'リバーシデバッグ機能が利用可能です。以下のコマンドをコンソールで実行できます：\n' +
+      '・window.__reversiDebug.skipToEndGame() - ゲーム終了2手前までショートカット\n' +
+      '・window.__reversiDebug.forceGameEnd() - ゲームを強制終了\n' +
+      '・window.__reversiDebug.setPlayer(playerNum) - 手番プレイヤーを設定 (1:黒, 2:白)',
+    );
+  }
+});
+
+/**
+ * コンポーネントのアンマウント時のクリーンアップ処理
+ */
+onUnmounted(() => {
+  // デバッグ用のグローバル関数を削除
+  if (typeof window !== 'undefined') {
+    // @ts-ignore - 実行時にwindowオブジェクトからプロパティを削除
+    delete window.__reversiDebug;
+  }
 });
 
 /**
@@ -388,6 +533,27 @@ const makeMove = (row: number, col: number): void => {
  */
 const resetGame = (): void => {
   initializeBoard();
+};
+
+/**
+ * デバッグ用: ゲームを強制終了する
+ */
+const forceGameEnd = (): void => {
+  gameStatus.value = 'ended';
+  console.info('ゲームを強制終了しました。');
+};
+
+/**
+ * デバッグ用: 手番プレイヤーを設定
+ */
+const setPlayer = (playerNum: number): void => {
+  if (playerNum !== BLACK && playerNum !== WHITE) {
+    console.error('無効なプレイヤー値です。1(黒)または2(白)を指定してください。');
+    return;
+  }
+
+  currentPlayer.value = playerNum;
+  console.info(`手番プレイヤーを${playerNum === BLACK ? '黒' : '白'}に設定しました。`);
 };
 </script>
 <style scoped>
