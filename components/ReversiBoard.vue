@@ -49,19 +49,31 @@
           </div>
         </div>
       </div>
-      <div v-if="gameStatus === 'ended'" class="game-result">
-        <div class="result-text">
-          {{ gameResultText }}
-        </div>
-      </div>
       <button v-if="!isMobileDevice" class="reset-button" @click="resetGame">
         ゲームをリセット
       </button>
     </div>
+
+    <!-- クラッカーエフェクト -->
+    <ConfettiEffect :is-active="showConfetti" />
+
+    <!-- 結果表示モーダル -->
+    <ResultModal
+      :is-open="showResultModal"
+      :result-text="gameResultText"
+      :is-player-win="isPlayerWin"
+      :player-count="playerCount"
+      :opponent-count="opponentCount"
+      :player-color="playerColor"
+      @close="closeResultModal"
+      @reset-game="resetGame"
+    />
   </div>
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, defineExpose } from 'vue';
+import ConfettiEffect from './ConfettiEffect.vue';
+import ResultModal from './ResultModal.vue';
 
 /**
  * ゲームの基本定数
@@ -122,6 +134,16 @@ const flippingPieces = ref<Set<string>>(new Set());
 const isAnimating = ref<boolean>(false);
 
 /**
+ * 結果モーダルの表示状態
+ */
+const showResultModal = ref<boolean>(false);
+
+/**
+ * クラッカーエフェクトの表示状態
+ */
+const showConfetti = ref<boolean>(false);
+
+/**
  * 指定位置の駒がアニメーション中かを判定
  */
 const isFlipping = (row: number, col: number): boolean => {
@@ -155,6 +177,8 @@ const initializeBoard = (): void => {
   gameStatus.value = 'playing';
   flippingPieces.value.clear();
   isAnimating.value = false;
+  showResultModal.value = false;
+  showConfetti.value = false;
 };
 
 /**
@@ -196,6 +220,7 @@ const skipToEndGame = (): void => {
       // さらに有効な手がなければゲーム終了
       if (!hasValidMove(currentPlayer.value)) {
         gameStatus.value = 'ended';
+        showGameResult();
       }
     }
 
@@ -272,6 +297,7 @@ const generateEndGamePosition = (emptyCount: number): void => {
   } else {
     // 両プレイヤーとも置けない場合はゲーム終了
     gameStatus.value = 'ended';
+    showGameResult();
   }
 };
 
@@ -345,10 +371,17 @@ const opponentCount = computed((): number => {
 });
 
 /**
+ * プレイヤーが勝ったかどうか
+ */
+const isPlayerWin = computed((): boolean => {
+  return playerCount.value > opponentCount.value;
+});
+
+/**
  * ゲーム結果のテキスト
  */
 const gameResultText = computed((): string => {
-  if (playerCount.value > opponentCount.value) {
+  if (isPlayerWin.value) {
     return 'あなたの勝ち！';
   } else if (opponentCount.value > playerCount.value) {
     return '相手の勝ち！';
@@ -438,6 +471,32 @@ const isValidMove = (row: number, col: number): boolean => {
   }
 
   return canPlaceAt(row, col);
+};
+
+/**
+ * ゲーム終了時の結果表示処理
+ */
+const showGameResult = (): void => {
+  // 少し遅延を設ける
+  setTimeout(() => {
+    showResultModal.value = true;
+
+    // プレイヤーが勝った場合はクラッカーエフェクトを表示
+    if (isPlayerWin.value) {
+      showConfetti.value = true;
+      // クラッカーエフェクトを3秒後に非表示にする
+      setTimeout(() => {
+        showConfetti.value = false;
+      }, 3000);
+    }
+  }, 500);
+};
+
+/**
+ * 結果モーダルを閉じる処理
+ */
+const closeResultModal = (): void => {
+  showResultModal.value = false;
 };
 
 /**
@@ -542,6 +601,7 @@ const makeMove = (row: number, col: number): void => {
       // さらに元のプレイヤーも置ける場所がなければゲーム終了
       if (!hasValidMove(currentPlayer.value)) {
         gameStatus.value = 'ended';
+        showGameResult();
       }
     }
 
@@ -562,6 +622,7 @@ const resetGame = (): void => {
  */
 const forceGameEnd = (): void => {
   gameStatus.value = 'ended';
+  showGameResult();
   console.info('ゲームを強制終了しました。');
 };
 
@@ -577,6 +638,11 @@ const setPlayer = (playerNum: number): void => {
   currentPlayer.value = playerNum;
   console.info(`手番プレイヤーを${playerNum === BLACK ? '黒' : '白'}に設定しました。`);
 };
+
+// 外部からアクセス可能なメソッドを公開
+defineExpose({
+  resetGame,
+});
 </script>
 <style scoped>
 .reversi-board {
@@ -750,17 +816,19 @@ const setPlayer = (playerNum: number): void => {
   border: 1px solid #ccc;
 }
 
-.game-result {
-  margin: 10px 0;
-}
-
-.result-text {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #d32f2f;
-}
-
 .reset-button {
   margin-top: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.reset-button:hover {
+  background-color: #388E3C;
 }
 </style>

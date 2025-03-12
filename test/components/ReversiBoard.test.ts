@@ -179,9 +179,15 @@ describe('ReversiBoard', () => {
 
       // ゲーム終了状態の表示
       wrapper.vm.gameStatus = 'ended';
+      wrapper.vm.showGameResult(); // モーダル表示処理を呼び出す
       await wrapper.vm.$nextTick();
-      expect(wrapper.find('.game-result').exists()).toBe(true);
-      expect(wrapper.find('.result-text').text()).toBe('引き分け');
+
+      // アニメーションの遅延を進める
+      vi.advanceTimersByTime(500);
+      await wrapper.vm.$nextTick();
+
+      // モーダルの表示状態を確認
+      expect(wrapper.vm.showResultModal).toBe(true);
 
       // 勝敗結果の表示テスト
       const playerColor = wrapper.vm.playerColor;
@@ -213,6 +219,120 @@ describe('ReversiBoard', () => {
       wrapper.vm.playerColor = 2; // WHITE
       expect(wrapper.vm.playerColorClass).toBe('white-icon');
       expect(wrapper.vm.opponentColorClass).toBe('black-icon');
+    });
+
+    it('ゲーム終了時にモーダルが表示される', async () => {
+      const wrapper = mountBoard();
+      await wrapper.vm.$nextTick();
+
+      // ゲームを終了状態にする
+      wrapper.vm.gameStatus = 'ended';
+      wrapper.vm.showGameResult();
+      await wrapper.vm.$nextTick();
+
+      // アニメーションの遅延を進める
+      vi.advanceTimersByTime(500);
+      await wrapper.vm.$nextTick();
+
+      // モーダルが表示されているか確認
+      expect(wrapper.vm.showResultModal).toBe(true);
+    });
+
+    it('プレイヤー勝利時にはクラッカーエフェクトが表示される', async () => {
+      const wrapper = mountBoard();
+      await wrapper.vm.$nextTick();
+
+      // プレイヤーが勝っている状態を作る
+      const playerColor = wrapper.vm.playerColor;
+      const opponentColor = playerColor === 1 ? 2 : 1;
+
+      // プレイヤーの石を多く配置
+      for (let i = 0; i < 5; i++) {
+        wrapper.vm.board[i][0] = playerColor;
+      }
+      // 相手の石を少なく配置
+      wrapper.vm.board[7][7] = opponentColor;
+      wrapper.vm.board[7][6] = opponentColor;
+
+      // ゲーム終了処理
+      wrapper.vm.gameStatus = 'ended';
+      wrapper.vm.showGameResult();
+
+      // アニメーションの遅延を進める
+      vi.advanceTimersByTime(500);
+      await wrapper.vm.$nextTick();
+
+      // クラッカーエフェクトが表示されるか確認
+      expect(wrapper.vm.showConfetti).toBe(true);
+      expect(wrapper.vm.isPlayerWin).toBe(true);
+
+      // クラッカーエフェクトが3秒後に非表示になるか確認
+      vi.advanceTimersByTime(3000);
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.showConfetti).toBe(false);
+    });
+
+    it('相手が勝った場合はクラッカーエフェクトが表示されない', async () => {
+      const wrapper = mountBoard();
+      await wrapper.vm.$nextTick();
+
+      // 相手が勝っている状態を作る
+      const playerColor = wrapper.vm.playerColor;
+      const opponentColor = playerColor === 1 ? 2 : 1;
+
+      // 相手の石を多く配置
+      for (let i = 0; i < 5; i++) {
+        wrapper.vm.board[i][0] = opponentColor;
+      }
+      // プレイヤーの石を少なく配置
+      wrapper.vm.board[7][7] = playerColor;
+      wrapper.vm.board[7][6] = playerColor;
+
+      // ゲーム終了処理
+      wrapper.vm.gameStatus = 'ended';
+      wrapper.vm.showGameResult();
+
+      // アニメーションの遅延を進める
+      vi.advanceTimersByTime(500);
+      await wrapper.vm.$nextTick();
+
+      // クラッカーエフェクトが表示されないか確認
+      expect(wrapper.vm.showConfetti).toBe(false);
+      expect(wrapper.vm.isPlayerWin).toBe(false);
+    });
+
+    it('モーダルの表示内容が正しい', async () => {
+      const wrapper = mountBoard();
+      await wrapper.vm.$nextTick();
+
+      // ゲームを終了状態にする（引き分け状態を設定）
+      const playerColor = wrapper.vm.playerColor;
+      const opponentColor = playerColor === 1 ? 2 : 1;
+
+      // 同数の石を配置
+      wrapper.vm.board[0][0] = playerColor;
+      wrapper.vm.board[0][1] = playerColor;
+      wrapper.vm.board[7][0] = opponentColor;
+      wrapper.vm.board[7][1] = opponentColor;
+
+      // ゲーム終了処理
+      wrapper.vm.gameStatus = 'ended';
+      wrapper.vm.showGameResult();
+      await wrapper.vm.$nextTick();
+
+      // アニメーションの遅延を進める
+      vi.advanceTimersByTime(500);
+      await wrapper.vm.$nextTick();
+
+      // ResultModalコンポーネントに正しいpropsが渡されているか確認
+      const resultModal = wrapper.findComponent({ name: 'ResultModal' });
+      expect(resultModal.exists()).toBe(true);
+      expect(resultModal.props('isOpen')).toBe(true);
+      expect(resultModal.props('resultText')).toBe('引き分け');
+      expect(resultModal.props('isPlayerWin')).toBe(false);
+      expect(resultModal.props('playerCount')).toBe(4);
+      expect(resultModal.props('opponentCount')).toBe(4);
+      expect(resultModal.props('playerColor')).toBe(wrapper.vm.playerColor);
     });
   });
 
@@ -316,6 +436,46 @@ describe('ReversiBoard', () => {
       expect(wrapper.vm.gameStatus).toBe('playing'); // プレイ状態に戻る
       expect(wrapper.vm.flippingPieces.size).toBe(0); // アニメーション状態がクリア
       expect(wrapper.vm.isAnimating).toBe(false); // アニメーションフラグがリセット
+    });
+
+    it('結果モーダルの閉じるイベント処理が正しく動作する', async () => {
+      const wrapper = mountBoard();
+      await wrapper.vm.$nextTick();
+
+      // モーダル表示状態にする
+      wrapper.vm.showResultModal = true;
+      await wrapper.vm.$nextTick();
+
+      // クローズメソッドを呼び出す
+      wrapper.vm.closeResultModal();
+      await wrapper.vm.$nextTick();
+
+      // モーダルが閉じていることを確認
+      expect(wrapper.vm.showResultModal).toBe(false);
+    });
+
+    it('「次のゲームへ」ボタンでゲームがリセットされる', async () => {
+      const wrapper = mountBoard();
+      await wrapper.vm.$nextTick();
+
+      // ゲーム盤を変更して終了状態にする
+      wrapper.vm.makeMove(2, 3);
+      vi.advanceTimersByTime(1000);
+      wrapper.vm.gameStatus = 'ended';
+      wrapper.vm.showResultModal = true;
+      await wrapper.vm.$nextTick();
+
+      // ResultModalコンポーネントへのreset-gameイベント発行をシミュレート
+      const resultModal = wrapper.findComponent({ name: 'ResultModal' });
+      await resultModal.vm.$emit('reset-game');
+      await wrapper.vm.$nextTick();
+
+      // ゲームがリセットされたことを確認
+      expect(wrapper.vm.gameStatus).toBe('playing');
+      expect(wrapper.vm.showResultModal).toBe(false);
+      // リセット後の盤面状態を確認（初期配置の4つの石）
+      const piecesAfterReset = wrapper.vm.board.flat().filter(cell => cell !== 0).length;
+      expect(piecesAfterReset).toBe(4);
     });
   });
 
