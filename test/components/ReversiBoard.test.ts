@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import type { VueWrapper } from '@vue/test-utils';
 import ReversiBoard from '../../components/ReversiBoard.vue';
+import { CPUPlayer, CPULevel } from '~/utils/CPUPlayer';
 
 describe('ReversiBoard', () => {
   /**
@@ -498,5 +499,22 @@ describe('ReversiBoard', () => {
       expect(wrapper.vm.playerCount).toBe(3);
       expect(wrapper.vm.opponentCount).toBe(3);
     });
+  });
+});
+
+describe('ReversiBoard with CPU', () => {
+  it('should initialize CPU player with correct level', async () => {
+    const wrapper = mount(ReversiBoard);
+    const cpuPlayer = new CPUPlayer(CPULevel.HARD);
+    expect(cpuPlayer.getLevel()).toBe(CPULevel.HARD);
+  });
+
+  it('should make a move for CPU player', async () => {
+    const wrapper = mount(ReversiBoard);
+    const cpuPlayer = new CPUPlayer(CPULevel.EASY);
+    const board = wrapper.vm.board;
+    const currentPlayer = wrapper.vm.currentPlayer;
+    const move = cpuPlayer.selectMove(board, currentPlayer);
+    expect(move).not.toBeNull();
   });
 });

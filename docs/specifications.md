@@ -58,6 +58,9 @@
      - `window.__reversiDebug.skipToEndGame()` - ゲーム終了 2 手前までショートカット
      - `window.__reversiDebug.forceGameEnd()` - ゲームを強制終了
      - `window.__reversiDebug.setPlayer(playerNum)` - 手番プレイヤーを設定 (1:黒, 2:白)
+   - **CPU 対戦機能**
+     - CPU プレイヤーとの対戦が可能
+     - CPU の強さは 3 段階（初級、中級、上級）から選択可能
 
 ### UI 仕様
 

@@ -1,17 +1,95 @@
 <template>
   <div class="container">
     <main>
-      <ReversiBoard />
+      <GameSettings
+        :is-open="isSettingsOpen"
+        :show-close-button="isGameStarted"
+        @update:settings="updateSettings"
+        @new-game="startNewGame"
+        @close="closeSettings"
+      />
+      <ReversiBoard
+        v-if="isGameStarted"
+        ref="reversiBoard"
+        @reset-request="openSettingsFromGame"
+      />
+
+      <!-- ゲームが開始されていない場合のスタート画面 -->
+      <div v-if="!isGameStarted && !isSettingsOpen" class="start-screen">
+        <h1 class="game-title">リバーシゲーム</h1>
+        <button class="start-button" @click="openSettings">
+          ゲーム設定
+        </button>
+      </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import GameSettings from '~/components/GameSettings.vue';
+import ReversiBoard from '~/components/ReversiBoard.vue';
+
 /**
- * リバーシゲームのメインページ
- * ゲームボードコンポーネントを中央に配置する
+ * 設定画面の表示状態
  */
-// ReversiBoard コンポーネントは自動的にインポートされます
+const isSettingsOpen = ref<boolean>(true);
+
+/**
+ * ゲームが開始されたかどうか
+ */
+const isGameStarted = ref<boolean>(false);
+
+/**
+ * ReversiBoardコンポーネントへの参照
+ */
+const reversiBoard = ref<InstanceType<typeof ReversiBoard> | null>(null);
+
+/**
+ * 設定画面を開く（ゲーム未開始時）
+ */
+const openSettings = (): void => {
+  isSettingsOpen.value = true;
+};
+
+/**
+ * ゲーム中にリセットボタンから設定画面を開く
+ * 盤面を維持したままモーダルを表示
+ */
+const openSettingsFromGame = (): void => {
+  isSettingsOpen.value = true;
+};
+
+/**
+ * 設定画面を閉じる
+ */
+const closeSettings = (): void => {
+  isSettingsOpen.value = false;
+};
+
+/**
+ * 設定が更新されたときの処理
+ */
+const updateSettings = (settings: { isCPUOpponent: boolean; cpuLevel: string }) => {
+  if (reversiBoard.value) {
+    const event = new CustomEvent('update:settings', { detail: settings });
+    window.dispatchEvent(event);
+  }
+};
+
+/**
+ * 新しいゲームを開始する処理
+ */
+const startNewGame = () => {
+  isGameStarted.value = true;
+
+  // コンポーネントのマウント後にresetGameを呼び出すため、nextTickで遅延実行
+  setTimeout(() => {
+    if (reversiBoard.value) {
+      reversiBoard.value.resetGame();
+    }
+  }, 0);
+};
 </script>
 
 <style scoped>
@@ -37,9 +115,43 @@
  */
 main {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   width: 100%;
   height: 100%;
+}
+
+/**
+ * スタート画面のスタイル
+ */
+.start-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+}
+
+.game-title {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.start-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  min-width: 200px;
+}
+
+.start-button:hover {
+  background-color: #388E3C;
 }
 </style>
