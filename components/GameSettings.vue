@@ -1,82 +1,82 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay">
-    <div class="modal-content">
-      <button v-if="showCloseButton" class="close-button" @click="closeModal">&times;</button>
-      <h2 class="settings-title">ゲーム設定</h2>
-      <div class="settings-section">
-        <div class="setting-group">
-          <label class="setting-label">対戦モード</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input
-                v-model="isCPUOpponent"
-                type="radio"
-                name="gameMode"
-                :value="false"
-                @change="updateSettings"
-              >
-              <span>2人プレイ</span>
-            </label>
-            <label class="radio-label">
-              <input
-                v-model="isCPUOpponent"
-                type="radio"
-                name="gameMode"
-                :value="true"
-                @change="updateSettings"
-              >
-              <span>CPU対戦</span>
-            </label>
-          </div>
-        </div>
-
-        <div v-if="isCPUOpponent" class="setting-group">
-          <label class="setting-label">CPU難易度</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input
-                v-model="cpuLevel"
-                type="radio"
-                name="cpuLevel"
-                :value="CPULevel.EASY"
-                @change="updateSettings"
-              >
-              <span>初級</span>
-            </label>
-            <label class="radio-label">
-              <input
-                v-model="cpuLevel"
-                type="radio"
-                name="cpuLevel"
-                :value="CPULevel.MEDIUM"
-                @change="updateSettings"
-              >
-              <span>中級</span>
-            </label>
-            <label class="radio-label">
-              <input
-                v-model="cpuLevel"
-                type="radio"
-                name="cpuLevel"
-                :value="CPULevel.HARD"
-                @change="updateSettings"
-              >
-              <span>上級</span>
-            </label>
-          </div>
+  <BaseModal :is-open="isOpen" :show-close-button="showCloseButton" @close="closeModal">
+    <h2 class="settings-title">ゲーム設定</h2>
+    <div class="settings-section">
+      <div class="setting-group">
+        <label class="setting-label">対戦モード</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input
+              v-model="isCPUOpponent"
+              type="radio"
+              name="gameMode"
+              :value="false"
+              @change="updateSettings"
+            >
+            <span>2人プレイ</span>
+          </label>
+          <label class="radio-label">
+            <input
+              v-model="isCPUOpponent"
+              type="radio"
+              name="gameMode"
+              :value="true"
+              @change="updateSettings"
+            >
+            <span>CPU対戦</span>
+          </label>
         </div>
       </div>
 
-      <div class="settings-buttons">
-        <button class="settings-button" @click="startNewGame">ゲームを開始</button>
+      <div v-if="isCPUOpponent" class="setting-group">
+        <label class="setting-label">CPU難易度</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input
+              v-model="cpuLevel"
+              type="radio"
+              name="cpuLevel"
+              :value="CPULevel.EASY"
+              @change="updateSettings"
+            >
+            <span>初級</span>
+          </label>
+          <label class="radio-label">
+            <input
+              v-model="cpuLevel"
+              type="radio"
+              name="cpuLevel"
+              :value="CPULevel.MEDIUM"
+              @change="updateSettings"
+            >
+            <span>中級</span>
+          </label>
+          <label class="radio-label">
+            <input
+              v-model="cpuLevel"
+              type="radio"
+              name="cpuLevel"
+              :value="CPULevel.HARD"
+              @change="updateSettings"
+            >
+            <span>上級</span>
+          </label>
+        </div>
       </div>
     </div>
-  </div>
+
+    <div class="settings-buttons">
+      <button class="settings-button" @click="startNewGame">
+        {{ isResetMode ? 'ゲームをリセット' : 'ゲームを開始' }}
+      </button>
+    </div>
+  </BaseModal>
 </template>
 
 <script setup lang="ts">
 import { ref, defineEmits, defineProps } from 'vue';
 import { CPULevel } from '~/utils/CPUPlayer';
+import BaseModal from '~/components/BaseModal.vue';
 
 /**
  * コンポーネントのプロパティ定義
@@ -91,6 +91,12 @@ const props = defineProps<{
    * ゲーム開始前は表示せず、ゲーム中のリセット時に表示する
    */
   showCloseButton?: boolean;
+  /**
+   * リセットモードかどうか
+   * ゲーム途中のリセットボタンからモーダルを開いた場合はtrue
+   * ゲーム開始前やゲームクリア後のモーダル表示ではfalse
+   */
+  isResetMode?: boolean;
 }>();
 
 /**
@@ -159,50 +165,6 @@ const closeModal = (): void => {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-  animation: fade-in 0.3s ease;
-}
-
-.modal-content {
-  background-color: #fff;
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  text-align: center;
-  width: 80%;
-  max-width: 400px;
-  animation: scale-in 0.3s ease;
-  position: relative;
-}
-
-.close-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  font-size: 24px;
-  font-weight: bold;
-  color: #555;
-  cursor: pointer;
-  padding: 5px 10px;
-  line-height: 1;
-}
-
-.close-button:hover {
-  color: #000;
-}
-
 .settings-title {
   font-size: 1.6rem;
   font-weight: bold;
@@ -264,25 +226,5 @@ const closeModal = (): void => {
 
 .settings-button:hover {
   background-color: #388E3C;
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scale-in {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div ref="boardRef" class="reversi-board">
+  <div ref="boardRef" class="reversi-board fade-in">
     <div class="game-info top-info">
       <div class="score opponent-score" :class="{ 'current-turn': currentPlayer !== playerColor }">
         <div class="score-content">
@@ -67,11 +67,12 @@
       :player-color="playerColor"
       @close="closeResultModal"
       @reset-game="resetGame"
+      @next-game="handleNextGame"
     />
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, defineExpose, defineEmits } from 'vue';
+import { ref, computed, onMounted, onUnmounted, defineExpose, defineEmits, defineProps } from 'vue';
 import ConfettiEffect from './ConfettiEffect.vue';
 import ResultModal from './ResultModal.vue';
 import { CPUPlayer, CPULevel } from '../utils/CPUPlayer';
@@ -85,6 +86,11 @@ const emit = defineEmits<{
    * 親コンポーネントで設定モーダルを表示するために使用
    */
   (e: 'reset-request'): void;
+  /**
+   * 次のゲームへボタンが押されたときに発行されるイベント
+   * 親コンポーネントで設定モーダルを表示するために使用
+   */
+  (e: 'next-game-request'): void;
 }>();
 
 /**
@@ -807,6 +813,14 @@ const isValidMove = (row: number, col: number): boolean => {
 const handleResetRequest = (): void => {
   emit('reset-request');
 };
+
+/**
+ * 次のゲームへボタンが押されたときの処理
+ * 親コンポーネントで設定モーダルを表示するためのイベントを発行
+ */
+const handleNextGame = (): void => {
+  emit('next-game-request');
+};
 </script>
 <style scoped>
 .reversi-board {
@@ -818,6 +832,19 @@ const handleResetRequest = (): void => {
   height: 100%;
   padding: 10px;
   box-sizing: border-box;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .board-container {

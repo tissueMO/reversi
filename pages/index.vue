@@ -4,6 +4,7 @@
       <GameSettings
         :is-open="isSettingsOpen"
         :show-close-button="isGameStarted"
+        :is-reset-mode="isResetMode"
         @update:settings="updateSettings"
         @new-game="startNewGame"
         @close="closeSettings"
@@ -12,6 +13,7 @@
         v-if="isGameStarted"
         ref="reversiBoard"
         @reset-request="openSettingsFromGame"
+        @next-game-request="openSettingsForNextGame"
       />
 
       <!-- ゲームが開始されていない場合のスタート画面 -->
@@ -41,6 +43,12 @@ const isSettingsOpen = ref<boolean>(true);
 const isGameStarted = ref<boolean>(false);
 
 /**
+ * 設定モーダルがリセットモードかどうか
+ * ゲーム途中のリセットボタンからモーダルを開いた場合はtrue
+ */
+const isResetMode = ref<boolean>(false);
+
+/**
  * ReversiBoardコンポーネントへの参照
  */
 const reversiBoard = ref<InstanceType<typeof ReversiBoard> | null>(null);
@@ -49,6 +57,7 @@ const reversiBoard = ref<InstanceType<typeof ReversiBoard> | null>(null);
  * 設定画面を開く（ゲーム未開始時）
  */
 const openSettings = (): void => {
+  isResetMode.value = false;
   isSettingsOpen.value = true;
 };
 
@@ -57,6 +66,17 @@ const openSettings = (): void => {
  * 盤面を維持したままモーダルを表示
  */
 const openSettingsFromGame = (): void => {
+  isResetMode.value = true;
+  isSettingsOpen.value = true;
+};
+
+/**
+ * ゲームクリア後に「次のゲームへ」ボタンから設定画面を開く
+ * ゲーム初期開始時と同様に盤面を非表示にする
+ */
+const openSettingsForNextGame = (): void => {
+  isResetMode.value = false;
+  isGameStarted.value = false;
   isSettingsOpen.value = true;
 };
 
@@ -81,7 +101,10 @@ const updateSettings = (settings: { isCPUOpponent: boolean; cpuLevel: string }) 
  * 新しいゲームを開始する処理
  */
 const startNewGame = () => {
-  isGameStarted.value = true;
+  // ゲームがまだ開始されていなければ開始状態にする
+  if (!isGameStarted.value) {
+    isGameStarted.value = true;
+  }
 
   // コンポーネントのマウント後にresetGameを呼び出すため、nextTickで遅延実行
   setTimeout(() => {

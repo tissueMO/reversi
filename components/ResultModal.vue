@@ -1,28 +1,25 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay">
-    <div class="modal-content">
-      <div class="result-text" :class="{ 'player-win': isPlayerWin }">
-        {{ resultText }}
-      </div>
-
-      <div class="score-container">
-        <div class="score-item">
-          <div class="color-icon" :class="playerColorClass"/>
-          <div class="score-label">自分: {{ playerCount }}</div>
-        </div>
-        <div class="score-item">
-          <div class="color-icon" :class="opponentColorClass"/>
-          <div class="score-label">相手: {{ opponentCount }}</div>
-        </div>
-      </div>
-
-      <button class="ok-button" @click="handleNextGame">次のゲームへ</button>
+  <BaseModal :is-open="isOpen" @close="handleNextGame">
+    <div class="result-text" :class="{ 'player-win': isPlayerWin }">
+      {{ resultText }}
     </div>
-  </div>
+    <div class="score-container">
+      <div class="score-item">
+        <div class="color-icon" :class="playerColorClass"/>
+        <div class="score-label">自分: {{ playerCount }}</div>
+      </div>
+      <div class="score-item">
+        <div class="color-icon" :class="opponentColorClass"/>
+        <div class="score-label">相手: {{ opponentCount }}</div>
+      </div>
+    </div>
+    <button class="ok-button" @click="handleNextGame">次のゲームへ</button>
+  </BaseModal>
 </template>
 
 <script setup lang="ts">
 import { defineProps, defineEmits, computed } from 'vue';
+import BaseModal from '~/components/BaseModal.vue';
 
 /**
  * モーダルの表示状態、結果テキスト、プレイヤー勝利フラグ、スコア情報を受け取る
@@ -51,48 +48,23 @@ const opponentColorClass = computed((): string => {
 });
 
 /**
- * モーダルを閉じるイベントとゲームリセットイベントを発行
+ * モーダルを閉じるイベント、ゲームリセットイベント、次のゲームへ進むイベントを発行
  */
 const emit = defineEmits<{
-  (e: 'close' | 'reset-game'): void;
+  (e: 'close' | 'reset-game' | 'next-game'): void;
 }>();
 
 /**
  * 「次のゲームへ」ボタンを押したときの処理
- * モーダルを閉じてゲームをリセットする
+ * 次のゲーム設定画面を表示するためのイベントを発行
  */
 const handleNextGame = (): void => {
-  emit('reset-game'); // 先にゲームリセットイベントを発行
-  emit('close'); // その後モーダルを閉じる
+  emit('next-game'); // 次のゲーム設定画面表示イベントを発行
+  emit('close'); // モーダルを閉じる
 };
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-  animation: fade-in 0.3s ease;
-}
-
-.modal-content {
-  background-color: #fff;
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  text-align: center;
-  width: 80%;
-  max-width: 400px;
-  animation: scale-in 0.3s ease;
-}
-
 .result-text {
   font-size: 2rem;
   font-weight: bold;
@@ -154,25 +126,5 @@ const handleNextGame = (): void => {
 
 .ok-button:hover {
   background-color: #388E3C;
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scale-in {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
 }
 </style>
