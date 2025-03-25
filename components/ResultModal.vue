@@ -6,11 +6,11 @@
     <div class="score-container">
       <div class="score-item">
         <div class="color-icon" :class="playerColorClass"/>
-        <div class="score-label">自分: {{ playerCount }}</div>
+        <div class="score-label">{{ playerDisplayName }}: {{ playerCount }}</div>
       </div>
       <div class="score-item">
         <div class="color-icon" :class="opponentColorClass"/>
-        <div class="score-label">相手: {{ opponentCount }}</div>
+        <div class="score-label">{{ opponentDisplayName }}: {{ opponentCount }}</div>
       </div>
     </div>
     <button class="ok-button" @click="handleNextGame">次のゲームへ</button>
@@ -31,6 +31,7 @@ const props = defineProps<{
   playerCount: number;
   opponentCount: number;
   playerColor: number;
+  gameMode?: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu';
 }>();
 
 /**
@@ -45,6 +46,38 @@ const playerColorClass = computed((): string => {
  */
 const opponentColorClass = computed((): string => {
   return props.playerColor === 1 ? 'white-icon' : 'black-icon';
+});
+
+/**
+ * プレイヤー1の表示名（対戦モードによって異なる）
+ */
+const playerDisplayName = computed((): string => {
+  switch (props.gameMode) {
+    case 'twoPlayers':
+      return 'プレイヤー1';
+    case 'playerVsCPU':
+      return 'あなた';
+    case 'cpuVsCpu':
+      return 'CPU.1';
+    default:
+      return 'プレイヤー1';
+  }
+});
+
+/**
+ * プレイヤー2（相手）の表示名（対戦モードによって異なる）
+ */
+const opponentDisplayName = computed((): string => {
+  switch (props.gameMode) {
+    case 'twoPlayers':
+      return 'プレイヤー2';
+    case 'playerVsCPU':
+      return 'CPU';
+    case 'cpuVsCpu':
+      return 'CPU.2';
+    default:
+      return 'プレイヤー2';
+  }
 });
 
 /**

@@ -1,66 +1,105 @@
 <template>
   <BaseModal :is-open="isOpen" :show-close-button="showCloseButton" @close="closeModal">
     <h2 class="settings-title">ゲーム設定</h2>
-    <div class="settings-section">
-      <div class="setting-group">
-        <label class="setting-label">対戦モード</label>
-        <div class="radio-group">
-          <label class="radio-label">
-            <input
-              v-model="isCPUOpponent"
-              type="radio"
-              name="gameMode"
-              :value="false"
-              @change="updateSettings"
-            >
-            <span>2人プレイ</span>
-          </label>
-          <label class="radio-label">
-            <input
-              v-model="isCPUOpponent"
-              type="radio"
-              name="gameMode"
-              :value="true"
-              @change="updateSettings"
-            >
-            <span>CPU対戦</span>
-          </label>
+    <div class="settings-container">
+      <div class="settings-section">
+        <div class="setting-group">
+          <label class="setting-label">対戦モード</label>
+          <div class="radio-container">
+            <label class="radio-label">
+              <input
+                v-model="tempGameMode"
+                type="radio"
+                name="gameMode"
+                value="twoPlayers"
+              >
+              プレイヤー対プレイヤー
+            </label>
+            <label class="radio-label">
+              <input
+                v-model="tempGameMode"
+                type="radio"
+                name="gameMode"
+                value="playerVsCPU"
+              >
+              プレイヤー対CPU
+            </label>
+            <label class="radio-label">
+              <input
+                v-model="tempGameMode"
+                type="radio"
+                name="gameMode"
+                value="cpuVsCpu"
+              >
+              CPU対CPU
+            </label>
+          </div>
         </div>
-      </div>
 
-      <div v-if="isCPUOpponent" class="setting-group">
-        <label class="setting-label">CPU難易度</label>
-        <div class="radio-group">
-          <label class="radio-label">
-            <input
-              v-model="cpuLevel"
-              type="radio"
-              name="cpuLevel"
-              :value="CPULevel.EASY"
-              @change="updateSettings"
-            >
-            <span>初級</span>
-          </label>
-          <label class="radio-label">
-            <input
-              v-model="cpuLevel"
-              type="radio"
-              name="cpuLevel"
-              :value="CPULevel.MEDIUM"
-              @change="updateSettings"
-            >
-            <span>中級</span>
-          </label>
-          <label class="radio-label">
-            <input
-              v-model="cpuLevel"
-              type="radio"
-              name="cpuLevel"
-              :value="CPULevel.HARD"
-              @change="updateSettings"
-            >
-            <span>上級</span>
-          </label>
+        <div v-if="tempGameMode !== 'twoPlayers'" class="setting-group">
+          <label class="setting-label">{{ tempGameMode === 'playerVsCPU' ? 'CPU 強さ' : 'CPU.1 強さ' }}</label>
+          <div class="radio-container radio-row">
+            <label class="radio-label">
+              <input
+                v-model="tempCpuLevel"
+                type="radio"
+                name="cpuLevel"
+                :value="CPULevel.EASY"
+              >
+              初級
+            </label>
+            <label class="radio-label">
+              <input
+                v-model="tempCpuLevel"
+                type="radio"
+                name="cpuLevel"
+                :value="CPULevel.MEDIUM"
+              >
+              中級
+            </label>
+            <label class="radio-label">
+              <input
+                v-model="tempCpuLevel"
+                type="radio"
+                name="cpuLevel"
+                :value="CPULevel.HARD"
+              >
+              上級
+            </label>
+          </div>
+        </div>
+
+        <div v-if="tempGameMode === 'cpuVsCpu'" class="setting-group">
+          <label class="setting-label">CPU.2 強さ</label>
+          <div class="radio-container radio-row">
+            <label class="radio-label">
+              <input
+                v-model="tempCpu2Level"
+                type="radio"
+                name="cpu2Level"
+                :value="CPULevel.EASY"
+              >
+              初級
+            </label>
+            <label class="radio-label">
+              <input
+                v-model="tempCpu2Level"
+                type="radio"
+                name="cpu2Level"
+                :value="CPULevel.MEDIUM"
+              >
+              中級
+            </label>
+            <label class="radio-label">
+              <input
+                v-model="tempCpu2Level"
+                type="radio"
+                name="cpu2Level"
+                :value="CPULevel.HARD"
+              >
+              上級
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -74,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, defineProps } from 'vue';
+import { ref, defineEmits, defineProps, watch, onMounted } from 'vue';
 import { CPULevel } from '~/utils/CPUPlayer';
 import BaseModal from '~/components/BaseModal.vue';
 
@@ -121,28 +160,62 @@ const emit = defineEmits<{
  * ゲーム設定の型定義
  */
 interface GameSettings {
-  isCPUOpponent: boolean;
+  gameMode: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu';
   cpuLevel: CPULevel;
+  cpu2Level: CPULevel;
 }
 
 /**
- * CPUと対戦するかどうかのフラグ
+ * 現在の設定値（ゲーム中に実際に使用される値）
  */
-const isCPUOpponent = ref<boolean>(false);
+const gameMode = ref<'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu'>('twoPlayers');
+const cpuLevel = ref<CPULevel>(CPULevel.MEDIUM);
+const cpu2Level = ref<CPULevel>(CPULevel.MEDIUM);
 
 /**
- * CPUの難易度
+ * モーダル内での一時的な設定値（確定前の値）
  */
-const cpuLevel = ref<CPULevel>(CPULevel.MEDIUM);
+const tempGameMode = ref<'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu'>('twoPlayers');
+const tempCpuLevel = ref<CPULevel>(CPULevel.MEDIUM);
+const tempCpu2Level = ref<CPULevel>(CPULevel.MEDIUM);
+
+/**
+ * モーダルが開かれたときに現在の設定を一時保存領域にコピー
+ */
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+    tempGameMode.value = gameMode.value;
+    tempCpuLevel.value = cpuLevel.value;
+    tempCpu2Level.value = cpu2Level.value;
+  }
+});
+
+/**
+ * 初期化
+ */
+onMounted(() => {
+  tempGameMode.value = gameMode.value;
+  tempCpuLevel.value = cpuLevel.value;
+  tempCpu2Level.value = cpu2Level.value;
+});
 
 /**
  * 設定を更新して親コンポーネントに通知する
  */
 const updateSettings = (): void => {
-  emit('update:settings', {
-    isCPUOpponent: isCPUOpponent.value,
+  // 一時設定を実際の設定に反映
+  gameMode.value = tempGameMode.value;
+  cpuLevel.value = tempCpuLevel.value;
+  cpu2Level.value = tempCpu2Level.value;
+
+  const settings: GameSettings = {
+    gameMode: gameMode.value,
     cpuLevel: cpuLevel.value,
-  });
+    cpu2Level: cpu2Level.value,
+  };
+
+  // 明示的な型で設定を更新
+  emit('update:settings', settings);
 };
 
 /**
@@ -150,7 +223,21 @@ const updateSettings = (): void => {
  * 設定を更新し、ゲーム開始イベントを発行してモーダルを閉じる
  */
 const startNewGame = (): void => {
-  updateSettings();
+  // 一時設定を実際の設定に反映
+  gameMode.value = tempGameMode.value;
+  cpuLevel.value = tempCpuLevel.value;
+  cpu2Level.value = tempCpu2Level.value;
+
+  const settings: GameSettings = {
+    gameMode: gameMode.value,
+    cpuLevel: cpuLevel.value,
+    cpu2Level: cpu2Level.value,
+  };
+
+  console.log('GameSettings: 設定を確定してゲームを開始します', settings);
+
+  // 明示的な型で設定を更新
+  emit('update:settings', settings);
   emit('new-game');
   emit('close');
 };
@@ -173,26 +260,43 @@ const closeModal = (): void => {
   color: #333;
 }
 
+.settings-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 .settings-section {
-  margin-bottom: 20px;
+  width: 100%;
+  max-width: 350px;
 }
 
 .setting-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .setting-label {
   display: block;
   font-weight: bold;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   color: #555;
+  text-align: left;
 }
 
-.radio-group {
+/* 完全に新しいラジオボタンのレイアウト */
+.radio-container {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-left: 20px;
+  align-items: flex-start;
+}
+
+.radio-container.radio-row {
+  flex-direction: row;
+  justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 15px;
-  justify-content: center;
+  margin-left: 20px;
 }
 
 .radio-label {
@@ -203,13 +307,13 @@ const closeModal = (): void => {
 }
 
 .radio-label input {
-  margin-right: 6px;
+  margin-right: 8px;
 }
 
 .settings-buttons {
   display: flex;
   justify-content: center;
-  margin-top: 25px;
+  margin-top: 30px;
 }
 
 .settings-button {

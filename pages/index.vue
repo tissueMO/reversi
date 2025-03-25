@@ -5,13 +5,16 @@
         :is-open="isSettingsOpen"
         :show-close-button="isGameStarted"
         :is-reset-mode="isResetMode"
-        @update:settings="updateSettings"
+        @update:settings="updateGameSettings"
         @new-game="startNewGame"
         @close="closeSettings"
       />
       <ReversiBoard
         v-if="isGameStarted"
         ref="reversiBoard"
+        :game-mode="gameSettings.gameMode"
+        :cpu-level="gameSettings.cpuLevel"
+        :cpu2-level="gameSettings.cpu2Level"
         @reset-request="openSettingsFromGame"
         @next-game-request="openSettingsForNextGame"
       />
@@ -31,6 +34,16 @@
 import { ref } from 'vue';
 import GameSettings from '~/components/GameSettings.vue';
 import ReversiBoard from '~/components/ReversiBoard.vue';
+import { CPULevel } from '~/utils/CPUPlayer';
+
+/**
+ * ゲーム設定の型定義
+ */
+interface GameSettings {
+  gameMode: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu';
+  cpuLevel: CPULevel;
+  cpu2Level: CPULevel;
+}
 
 /**
  * 設定画面の表示状態
@@ -52,6 +65,15 @@ const isResetMode = ref<boolean>(false);
  * ReversiBoardコンポーネントへの参照
  */
 const reversiBoard = ref<InstanceType<typeof ReversiBoard> | null>(null);
+
+/**
+ * ゲーム設定
+ */
+const gameSettings = ref<GameSettings>({
+  gameMode: 'twoPlayers',
+  cpuLevel: CPULevel.MEDIUM,
+  cpu2Level: CPULevel.MEDIUM,
+});
 
 /**
  * 設定画面を開く（ゲーム未開始時）
@@ -90,11 +112,15 @@ const closeSettings = (): void => {
 /**
  * 設定が更新されたときの処理
  */
-const updateSettings = (settings: { isCPUOpponent: boolean; cpuLevel: string }) => {
-  if (reversiBoard.value) {
-    const event = new CustomEvent('update:settings', { detail: settings });
-    window.dispatchEvent(event);
-  }
+const updateGameSettings = (settings: GameSettings): void => {
+  console.log('設定を更新します:', settings);
+
+  // 設定を現在の状態に保存
+  gameSettings.value = {
+    gameMode: settings.gameMode,
+    cpuLevel: settings.cpuLevel,
+    cpu2Level: settings.cpu2Level,
+  };
 };
 
 /**
@@ -106,12 +132,12 @@ const startNewGame = () => {
     isGameStarted.value = true;
   }
 
-  // コンポーネントのマウント後にresetGameを呼び出すため、nextTickで遅延実行
+  // コンポーネントのマウント後にresetGameを呼び出すため、遅延実行
   setTimeout(() => {
     if (reversiBoard.value) {
       reversiBoard.value.resetGame();
     }
-  }, 0);
+  }, 100);
 };
 </script>
 

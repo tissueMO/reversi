@@ -6,7 +6,7 @@
           <div class="score-icon-and-count" :class="{ 'rotated': isMobileDevice }">
             <div class="color-icon" :class="opponentColorClass" />
             <div class="score-text">
-              相手: <span class="count-display">{{ opponentCount }}</span>
+              {{ opponentDisplayName }}: <span class="count-display">{{ opponentCount }}</span>
             </div>
           </div>
         </div>
@@ -44,7 +44,7 @@
           <div class="score-icon-and-count">
             <div class="color-icon" :class="playerColorClass" />
             <div class="score-text">
-              自分: <span class="count-display">{{ playerCount }}</span>
+              {{ playerDisplayName }}: <span class="count-display">{{ playerCount }}</span>
             </div>
           </div>
         </div>
@@ -65,6 +65,7 @@
       :player-count="playerCount"
       :opponent-count="opponentCount"
       :player-color="playerColor"
+      :game-mode="props.gameMode"
       @close="closeResultModal"
       @reset-game="resetGame"
       @next-game="handleNextGame"
@@ -72,10 +73,28 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, defineExpose, defineEmits, defineProps } from 'vue';
+import { ref, computed, onMounted, onUnmounted, defineExpose, defineEmits, defineProps, watch } from 'vue';
 import ConfettiEffect from './ConfettiEffect.vue';
 import ResultModal from './ResultModal.vue';
 import { CPUPlayer, CPULevel } from '../utils/CPUPlayer';
+
+/**
+ * コンポーネントのプロパティ定義
+ */
+const props = defineProps<{
+  /**
+   * ゲームモード設定
+   */
+  gameMode: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu';
+  /**
+   * CPU強さ設定（プレイヤー対CPU、またはCPU対CPUの1P側の強さ）
+   */
+  cpuLevel: CPULevel;
+  /**
+   * CPU2強さ設定（CPU対CPUの2P側の強さ）
+   */
+  cpu2Level: CPULevel;
+}>();
 
 /**
  * emitするイベントの定義
@@ -325,36 +344,69 @@ const generateEndGamePosition = (emptyCount: number): void => {
 const cpuPlayer = ref<CPUPlayer | null>(null);
 
 /**
+ * CPU対CPU用の第2 CPUプレイヤーのインスタンス
+ */
+const cpu2Player = ref<CPUPlayer | null>(null);
+
+/**
  * ゲーム設定
  */
 const gameSettings = ref({
-  isCPUOpponent: false,
+  gameMode: 'twoPlayers' as 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu',
   cpuLevel: CPULevel.MEDIUM,
+  cpu2Level: CPULevel.MEDIUM,
 });
 
 /**
  * 相手のターンかどうかを判定
- * CPUが有効な場合、現在のプレイヤーがCPU（相手）の色と一致するかをチェック
+ * CPUモードが有効な場合の判定を行う
  */
 const isOpponentTurn = computed(() => {
-  const opponentColor = playerColor.value === BLACK ? WHITE : BLACK;
-  return gameSettings.value.isCPUOpponent && currentPlayer.value === opponentColor;
+  // CPU対CPUモードの場合、常にCPUがプレイするのでユーザー操作は不要
+  if (gameSettings.value.gameMode === 'cpuVsCpu') {
+    return true;
+  }
+
+  // プレイヤー対CPUモードの場合、プレイヤーの色ではない方がCPUの色
+  if (gameSettings.value.gameMode === 'playerVsCPU') {
+    const opponentColor = playerColor.value === BLACK ? WHITE : BLACK;
+    return currentPlayer.value === opponentColor;
+  }
+
+  return false;
 });
 
 /**
  * 設定が更新されたときの処理
  */
-const updateSettings = (settings: { isCPUOpponent: boolean; cpuLevel: CPULevel }) => {
+const updateSettings = (settings: { gameMode: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu'; cpuLevel: CPULevel; cpu2Level: CPULevel }) => {
   gameSettings.value = settings;
-  if (settings.isCPUOpponent) {
+
+  // CPUプレイヤーの設定
+  if (settings.gameMode === 'playerVsCPU') {
     cpuPlayer.value = new CPUPlayer(settings.cpuLevel);
+    cpu2Player.value = null;
+
     // CPUが「相手」として設定されたら、そのターンであれば手を打つ
     // アニメーションが終了後に実行するため少し遅延させる
     setTimeout(() => {
       handleOpponentTurn();
     }, 500);
-  } else {
+  }
+  // CPU対CPUモードの設定
+  else if (settings.gameMode === 'cpuVsCpu') {
+    cpuPlayer.value = new CPUPlayer(settings.cpuLevel);
+    cpu2Player.value = new CPUPlayer(settings.cpu2Level);
+
+    // CPU対CPUの場合は、自動的に対戦を開始する
+    setTimeout(() => {
+      handleCPUvsCPUTurn();
+    }, 500);
+  }
+  // 2人プレイモードの場合はCPUプレイヤーをクリア
+  else {
     cpuPlayer.value = null;
+    cpu2Player.value = null;
   }
 };
 
@@ -362,8 +414,8 @@ const updateSettings = (settings: { isCPUOpponent: boolean; cpuLevel: CPULevel }
  * 相手（CPU）の手番処理
  */
 const handleOpponentTurn = async () => {
-  // CPU対戦がオフの場合は何もしない
-  if (!gameSettings.value.isCPUOpponent || !cpuPlayer.value) {
+  // CPU対戦モードがオフの場合は何もしない
+  if (gameSettings.value.gameMode !== 'playerVsCPU' || !cpuPlayer.value) {
     return;
   }
 
@@ -415,6 +467,80 @@ const handleOpponentTurn = async () => {
       if (!hasValidMove(currentPlayer.value)) {
         gameStatus.value = 'ended';
         showGameResult();
+      }
+    }
+  }
+};
+
+/**
+ * CPU対CPUの対戦処理
+ * 両方のCPUプレイヤーが自動的に対戦するための処理
+ */
+const handleCPUvsCPUTurn = async (): Promise<void> => {
+  // CPU対CPUモードがオフの場合は何もしない
+  if (gameSettings.value.gameMode !== 'cpuVsCpu' || !cpuPlayer.value || !cpu2Player.value) {
+    return;
+  }
+
+  // ゲームがプレイ中の場合のみ動作
+  if (gameStatus.value === 'playing') {
+    // アニメーション中は何もしない
+    if (isAnimating.value) {
+      // アニメーション終了後に再試行するためのタイマーを設定
+      setTimeout(() => handleCPUvsCPUTurn(), 500);
+      return;
+    }
+
+    console.log(`${currentPlayer.value === BLACK ? '黒' : '白'}のCPUが手を考えています...`);
+
+    // CPU思考時間を設定（0.8秒）
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // 状態が変化した可能性があるため再チェック
+    if (gameStatus.value !== 'playing' || isAnimating.value) {
+      return;
+    }
+
+    // 現在のプレイヤーに合わせたCPUインスタンスを選択
+    const activeCPU = currentPlayer.value === BLACK ? cpuPlayer.value : cpu2Player.value;
+
+    // CPUの手を決定
+    const move = activeCPU.selectMove(board.value, currentPlayer.value);
+    console.log(`${currentPlayer.value === BLACK ? '黒' : '白'}のCPUが選んだ手:`, move);
+
+    if (move) {
+      // CPU処理中に明示的にアニメーション状態にして、ユーザー操作を防止
+      isAnimating.value = true;
+
+      // CPUの手を実行
+      await internalMakeMove(move.row, move.col);
+
+      // アニメーション状態を元に戻す
+      setTimeout(() => {
+        isAnimating.value = false;
+
+        // 次のCPUの手番を実行
+        if (gameStatus.value === 'playing') {
+          setTimeout(() => {
+            handleCPUvsCPUTurn();
+          }, 300);
+        }
+      }, 100);
+    } else {
+      console.log(`${currentPlayer.value === BLACK ? '黒' : '白'}のCPUは有効な手がありません`);
+      // CPUに有効な手がなかった場合のスキップ処理
+      const opponent = currentPlayer.value === BLACK ? WHITE : BLACK;
+      currentPlayer.value = opponent;
+
+      // さらに次のプレイヤーも置ける場所がなければゲーム終了
+      if (!hasValidMove(currentPlayer.value)) {
+        gameStatus.value = 'ended';
+        showGameResult();
+      } else {
+        // 次のCPUの手番を実行
+        setTimeout(() => {
+          handleCPUvsCPUTurn();
+        }, 300);
       }
     }
   }
@@ -586,13 +712,50 @@ const closeResultModal = (): void => {
 };
 
 /**
+ * 親コンポーネントから直接渡されたpropsを更新
+ */
+const setupGame = (): void => {
+  try {
+    console.log('ゲーム設定を初期化します。モード:', props.gameMode);
+
+    // CPUプレイヤーの設定
+    if (props.gameMode === 'playerVsCPU') {
+      cpuPlayer.value = new CPUPlayer(props.cpuLevel);
+      cpu2Player.value = null;
+    }
+    // CPU対CPUモードの設定
+    else if (props.gameMode === 'cpuVsCpu') {
+      cpuPlayer.value = new CPUPlayer(props.cpuLevel);
+      cpu2Player.value = new CPUPlayer(props.cpu2Level);
+    }
+    // 2人プレイモードの場合はCPUプレイヤーを無効化
+    else {
+      cpuPlayer.value = null;
+      cpu2Player.value = null;
+    }
+  } catch (error) {
+    console.error('ゲーム設定の初期化中にエラーが発生しました:', error);
+  }
+};
+
+/**
  * ゲームを初期状態にリセット
  */
 const resetGame = (): void => {
+  console.log('ゲームをリセットします。モード:', props.gameMode);
   initializeBoard();
+  setupGame();
 
-  // ゲームリセット後、CPUの手番であれば自動で打つ
-  handleOpponentTurn();
+  // ゲームリセット後の処理
+  if (props.gameMode === 'playerVsCPU') {
+    // プレイヤー対CPUの場合、CPUの手番があれば自動で打つ
+    handleOpponentTurn();
+  } else if (props.gameMode === 'cpuVsCpu') {
+    // CPU対CPUの場合、自動で対戦を開始
+    setTimeout(() => {
+      handleCPUvsCPUTurn();
+    }, 500);
+  }
 };
 
 /**
@@ -623,7 +786,27 @@ defineExpose({
 });
 
 /**
- * コンポーネントマウント時の初期化処理
+ * 親コンポーネントからの設定変更を監視
+ */
+watch([() => props.gameMode, () => props.cpuLevel, () => props.cpu2Level],
+  ([newGameMode, newCpuLevel, newCpu2Level]) => {
+    console.log('親コンポーネントから設定が変更されました:', newGameMode, newCpuLevel, newCpu2Level);
+
+    // 現在の設定を更新
+    gameSettings.value = {
+      gameMode: newGameMode,
+      cpuLevel: newCpuLevel,
+      cpu2Level: newCpu2Level,
+    };
+
+    // 更新された設定を適用
+    updateSettings(gameSettings.value);
+  },
+  { immediate: true }, // コンポーネントのマウント時に即座に実行
+);
+
+/**
+ * コンポーネントのマウント時の初期化処理
  */
 onMounted(() => {
   initializeBoard();
@@ -647,12 +830,6 @@ onMounted(() => {
       '・window.__reversiDebug.setPlayer(playerNum) - 手番プレイヤーを設定 (1:黒, 2:白)',
     );
   }
-
-  // 設定の更新イベントリスナーを追加
-  const settingsListener = (event: CustomEvent) => {
-    updateSettings(event.detail);
-  };
-  window.addEventListener('update:settings', settingsListener as EventListener);
 });
 
 /**
@@ -667,12 +844,6 @@ onUnmounted(() => {
     // @ts-ignore - 実行時にwindowオブジェクトからプロパティを削除
     delete window.__reversiDebug;
   }
-
-  // 設定の更新イベントリスナーを削除
-  const settingsListener = (event: CustomEvent) => {
-    updateSettings(event.detail);
-  };
-  window.removeEventListener('update:settings', settingsListener as EventListener);
 });
 
 /**
@@ -720,6 +891,38 @@ const gameResultText = computed((): string => {
     return '相手の勝ち！';
   } else {
     return '引き分け';
+  }
+});
+
+/**
+ * プレイヤー1の表示名（対戦モードによって異なる）
+ */
+const playerDisplayName = computed((): string => {
+  switch (gameSettings.value.gameMode) {
+    case 'twoPlayers':
+      return 'プレイヤー1';
+    case 'playerVsCPU':
+      return 'あなた';
+    case 'cpuVsCpu':
+      return 'CPU.1';
+    default:
+      return 'プレイヤー1';
+  }
+});
+
+/**
+ * プレイヤー2（相手）の表示名（対戦モードによって異なる）
+ */
+const opponentDisplayName = computed((): string => {
+  switch (gameSettings.value.gameMode) {
+    case 'twoPlayers':
+      return 'プレイヤー2';
+    case 'playerVsCPU':
+      return 'CPU';
+    case 'cpuVsCpu':
+      return 'CPU.2';
+    default:
+      return 'プレイヤー2';
   }
 });
 
