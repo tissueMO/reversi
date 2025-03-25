@@ -1,7 +1,7 @@
 <template>
   <BaseModal :is-open="isOpen" @close="handleNextGame">
     <div class="result-text" :class="{ 'player-win': isPlayerWin }">
-      {{ resultText }}
+      {{ computedResultText }}
     </div>
     <div class="score-container">
       <div class="score-item">
@@ -19,14 +19,13 @@
 
 <script setup lang="ts">
 import { defineProps, defineEmits, computed } from 'vue';
-import BaseModal from '~/components/BaseModal.vue';
+import BaseModal from './BaseModal.vue';
 
 /**
- * モーダルの表示状態、結果テキスト、プレイヤー勝利フラグ、スコア情報を受け取る
+ * モーダルの表示状態、プレイヤー勝利フラグ、スコア情報を受け取る
  */
 const props = defineProps<{
   isOpen: boolean;
-  resultText: string;
   isPlayerWin: boolean;
   playerCount: number;
   opponentCount: number;
@@ -77,6 +76,22 @@ const opponentDisplayName = computed((): string => {
       return 'CPU.2';
     default:
       return 'プレイヤー2';
+  }
+});
+
+/**
+ * ゲームの結果テキスト（ゲームモードと勝敗状況に応じて変化）
+ */
+const computedResultText = computed((): string => {
+  switch (props.gameMode) {
+    case 'twoPlayers':
+      return props.isPlayerWin ? 'プレイヤー1の勝ち' : 'プレイヤー2の勝ち';
+    case 'playerVsCPU':
+      return props.isPlayerWin ? 'あなたの勝ち' : 'あなたの負け';
+    case 'cpuVsCpu':
+      return props.isPlayerWin ? 'CPU.1の勝ち' : 'CPU.2の勝ち';
+    default:
+      return props.isPlayerWin ? 'プレイヤー1の勝ち' : 'プレイヤー2の勝ち';
   }
 });
 
