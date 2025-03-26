@@ -107,7 +107,7 @@ describe('ReversiBoard', () => {
 
       // makeMove関数をスパイして直接結果を設定
       const spyMakeMove = vi.spyOn(wrapper.vm, 'makeMove');
-      spyMakeMove.mockImplementation(async (row, col) => {
+      spyMakeMove.mockImplementation(async (_row, _col) => {
         // 手番を切り替える
         wrapper.vm.currentPlayer = wrapper.vm.currentPlayer === 1 ? 2 : 1;
         return Promise.resolve();
@@ -444,43 +444,17 @@ describe('ReversiBoard', () => {
 
   describe('ゲーム機能', () => {
     it('リセット機能が正しく動作する', async () => {
-      // resetGameをスパイして直接処理を実装
-      const spyResetGame = vi.fn().mockImplementation(async () => {
-        const wrapper = mountBoard();
-        // 初期化処理を直接実行
-        wrapper.vm.gameStatus = 'playing';
-        wrapper.vm.flippingPieces = new Set();
-        wrapper.vm.isAnimating = false;
-
-        // 盤面を初期状態に戻す
-        for (let i = 0; i < 8; i++) {
-          for (let j = 0; j < 8; j++) {
-            wrapper.vm.board[i][j] = 0;
-          }
-        }
-        // 初期配置
-        wrapper.vm.board[3][3] = 2;
-        wrapper.vm.board[3][4] = 1;
-        wrapper.vm.board[4][3] = 1;
-        wrapper.vm.board[4][4] = 2;
-
-        return Promise.resolve();
-      });
-
+      // テスト実装
       const wrapper = mountBoard();
       await wrapper.vm.$nextTick();
-
       // CPU対戦機能を無効化
       wrapper.vm.gameSettings = { isCPUOpponent: false, cpuLevel: CPULevel.MEDIUM };
-
       // ゲーム状態を変更（石を置いて初期状態から変化させる）
       wrapper.vm.board[2][3] = 1;
       wrapper.vm.board[2][4] = 1;
-
       // 盤面が初期状態から変化していることを確認
       const piecesBeforeReset = wrapper.vm.board.flat().filter(cell => cell !== 0).length;
       expect(piecesBeforeReset).toBeGreaterThan(4);
-
       // resetGameメソッドを置き換え
       const originalResetGame = wrapper.vm.resetGame;
       wrapper.vm.resetGame = async () => {
@@ -495,26 +469,21 @@ describe('ReversiBoard', () => {
         wrapper.vm.board[3][4] = 1;
         wrapper.vm.board[4][3] = 1;
         wrapper.vm.board[4][4] = 2;
-
         // 状態リセット
         wrapper.vm.gameStatus = 'playing';
         wrapper.vm.flippingPieces.clear();
         wrapper.vm.isAnimating = false;
-
         // 元々返していたPromiseをそのまま返す
         return Promise.resolve();
       };
-
       // リセット処理
       await wrapper.vm.resetGame();
       await wrapper.vm.$nextTick();
-
       // 初期状態に戻っていることを確認
       const piecesAfterReset = wrapper.vm.board.flat().filter(cell => cell !== 0).length;
       expect(piecesAfterReset).toBe(4); // 初期石は4つ
       expect(wrapper.vm.gameStatus).toBe('playing'); // プレイ状態に戻る
       expect(wrapper.vm.flippingPieces.size).toBe(0); // アニメーション状態がクリア
-
       // 元のメソッドに戻す
       wrapper.vm.resetGame = originalResetGame;
     });

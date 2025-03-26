@@ -13,7 +13,7 @@ import { defineProps, defineEmits } from 'vue';
 /**
  * コンポーネントのプロパティ定義
  */
-const props = defineProps<{
+defineProps<{
   /**
    * モーダルの表示状態
    */

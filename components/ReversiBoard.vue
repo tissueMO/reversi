@@ -101,15 +101,10 @@ const props = defineProps<{
  */
 const emit = defineEmits<{
   /**
-   * リセットボタンが押されたときに発行されるイベント
+   * リセットボタンが押されたとき、または次のゲームへボタンが押されたときに発行されるイベント
    * 親コンポーネントで設定モーダルを表示するために使用
    */
-  (e: 'reset-request'): void;
-  /**
-   * 次のゲームへボタンが押されたときに発行されるイベント
-   * 親コンポーネントで設定モーダルを表示するために使用
-   */
-  (e: 'next-game-request'): void;
+  (e: 'reset-request' | 'next-game-request'): void;
 }>();
 
 /**
@@ -675,14 +670,6 @@ const makeMove = async (row: number, col: number): Promise<void> => {
   }
 
   await internalMakeMove(row, col);
-};
-
-/**
- * 新しいゲームを開始する処理
- */
-const startNewGame = () => {
-  resetGame();
-  handleOpponentTurn(); // ゲーム開始時に相手の手番があれば処理
 };
 
 /**

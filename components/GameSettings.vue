@@ -147,13 +147,9 @@ const emit = defineEmits<{
    */
   (e: 'update:settings', settings: GameSettings): void,
   /**
-   * 新しいゲームが開始されたときに発行されるイベント
+   * 新しいゲームが開始されたときに発行、またはモーダルを閉じるイベント
    */
-  (e: 'new-game'): void,
-  /**
-   * モーダルを閉じるイベント
-   */
-  (e: 'close'): void
+  (e: 'new-game' | 'close'): void
 }>();
 
 /**
@@ -198,25 +194,6 @@ onMounted(() => {
   tempCpuLevel.value = cpuLevel.value;
   tempCpu2Level.value = cpu2Level.value;
 });
-
-/**
- * 設定を更新して親コンポーネントに通知する
- */
-const updateSettings = (): void => {
-  // 一時設定を実際の設定に反映
-  gameMode.value = tempGameMode.value;
-  cpuLevel.value = tempCpuLevel.value;
-  cpu2Level.value = tempCpu2Level.value;
-
-  const settings: GameSettings = {
-    gameMode: gameMode.value,
-    cpuLevel: cpuLevel.value,
-    cpu2Level: cpu2Level.value,
-  };
-
-  // 明示的な型で設定を更新
-  emit('update:settings', settings);
-};
 
 /**
  * 新しいゲームを開始する
