@@ -12,12 +12,37 @@ export class UltimateCPUPlayer extends BaseCPUPlayer {
   private model: tf.LayersModel | null = null;
   private modelLoading: boolean = false;
   private modelLoadAttempts: number = 0;
+  private modelLoadFailed: boolean = false;
   private readonly MAX_LOAD_ATTEMPTS = 3;
 
   constructor() {
     super(CPULevel.ULTIMATE);
     // 初期化時にモデルの読み込みを試みる
     this.loadModel();
+  }
+
+  /**
+   * モデルが読み込まれ、使用可能かどうかを返す
+   * @returns モデルが読み込まれているかどうか
+   */
+  public isModelReady(): boolean {
+    return this.model !== null;
+  }
+
+  /**
+   * モデルの読み込みが完全に失敗したかどうかを返す
+   * @returns モデルの読み込みが失敗したかどうか
+   */
+  public hasModelLoadFailed(): boolean {
+    return this.modelLoadFailed;
+  }
+
+  /**
+   * 現在のモデル読み込み処理の状態を返す
+   * @returns モデルが読み込み中かどうか
+   */
+  public isModelLoading(): boolean {
+    return this.modelLoading;
   }
 
   /**
@@ -31,6 +56,7 @@ export class UltimateCPUPlayer extends BaseCPUPlayer {
     // ロード試行回数の上限を超えていたら上級難易度にフォールバック
     if (this.modelLoadAttempts >= this.MAX_LOAD_ATTEMPTS) {
       console.warn(`モデルの読み込みを${this.MAX_LOAD_ATTEMPTS}回試行しましたが失敗しました。上級難易度の戦略にフォールバックします。`);
+      this.modelLoadFailed = true;
       return;
     }
 
@@ -67,6 +93,7 @@ export class UltimateCPUPlayer extends BaseCPUPlayer {
       tf.engine().endScope(); // メモリスコープ終了
 
       console.log('リバーシAIモデルの読み込みとウォームアップに成功しました');
+      this.modelLoadFailed = false;
     } catch (error) {
       console.error('リバーシAIモデルの読み込みに失敗しました:', error);
 
@@ -81,6 +108,7 @@ export class UltimateCPUPlayer extends BaseCPUPlayer {
       // モデルロードに3回失敗したら終了
       if (this.modelLoadAttempts >= this.MAX_LOAD_ATTEMPTS) {
         console.warn(`モデルの読み込みを${this.MAX_LOAD_ATTEMPTS}回試行しましたが失敗しました。上級難易度の戦略にフォールバックします。`);
+        this.modelLoadFailed = true;
       } else {
         // 少し待ってから再試行（指数バックオフ）
         const retryDelay = Math.pow(2, this.modelLoadAttempts) * 500;
