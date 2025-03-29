@@ -35,7 +35,6 @@
             </label>
           </div>
         </div>
-
         <div v-if="tempGameMode !== 'twoPlayers'" class="setting-group">
           <label class="setting-label">{{ tempGameMode === 'playerVsCPU' ? 'CPU 強さ' : 'CPU.1 強さ' }}</label>
           <div class="radio-container radio-row">
@@ -66,9 +65,17 @@
               >
               上級
             </label>
+            <label class="radio-label">
+              <input
+                v-model="tempCpuLevel"
+                type="radio"
+                name="cpuLevel"
+                :value="CPULevel.ULTIMATE"
+              >
+              最強
+            </label>
           </div>
         </div>
-
         <div v-if="tempGameMode === 'cpuVsCpu'" class="setting-group">
           <label class="setting-label">CPU.2 強さ</label>
           <div class="radio-container radio-row">
@@ -99,11 +106,19 @@
               >
               上級
             </label>
+            <label class="radio-label">
+              <input
+                v-model="tempCpu2Level"
+                type="radio"
+                name="cpu2Level"
+                :value="CPULevel.ULTIMATE"
+              >
+              最強
+            </label>
           </div>
         </div>
       </div>
     </div>
-
     <div class="settings-buttons">
       <button class="settings-button" @click="startNewGame">
         {{ isResetMode ? 'ゲームをリセット' : 'ゲームを開始' }}

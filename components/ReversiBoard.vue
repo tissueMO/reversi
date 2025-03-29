@@ -413,9 +413,7 @@ const handleOpponentTurn = async () => {
   if (gameSettings.value.gameMode !== 'playerVsCPU' || !cpuPlayer.value) {
     return;
   }
-
   const opponentColor = playerColor.value === BLACK ? WHITE : BLACK;
-
   // 現在が相手のターンであり、ゲームがプレイ中の場合のみ動作
   if (currentPlayer.value === opponentColor && gameStatus.value === 'playing') {
     // アニメーション中は何もしない
@@ -424,30 +422,23 @@ const handleOpponentTurn = async () => {
       setTimeout(() => handleOpponentTurn(), 500);
       return;
     }
-
     console.log('CPUが手を考えています...');
-
     // CPU思考時間を設定（1秒）
     await new Promise(resolve => setTimeout(resolve, 1000));
-
     // 状態が変化した可能性があるため再チェック
     if (gameStatus.value !== 'playing' ||
         currentPlayer.value !== opponentColor ||
         isAnimating.value) {
       return;
     }
-
-    // CPUの手を決定
-    const move = cpuPlayer.value.selectMove(board.value, currentPlayer.value);
+    // CPUの手を決定（非同期で待機）
+    const move = await cpuPlayer.value.selectMove(board.value, currentPlayer.value);
     console.log('CPUが選んだ手:', move);
-
     if (move) {
       // CPU処理中に明示的にアニメーション状態にして、ユーザー操作を防止
       isAnimating.value = true;
-
       // CPUの手を実行
       await internalMakeMove(move.row, move.col);
-
       // アニメーション状態を元に戻す（本来はmakeMoveの中で処理されるが念のため）
       setTimeout(() => {
         isAnimating.value = false;
@@ -457,7 +448,6 @@ const handleOpponentTurn = async () => {
       // CPUに有効な手がなかった場合のスキップ処理
       const opponent = currentPlayer.value === BLACK ? WHITE : BLACK;
       currentPlayer.value = opponent;
-
       // さらに次のプレイヤーも置ける場所がなければゲーム終了
       if (!hasValidMove(currentPlayer.value)) {
         gameStatus.value = 'ended';
@@ -499,8 +489,8 @@ const handleCPUvsCPUTurn = async (): Promise<void> => {
     // 現在のプレイヤーに合わせたCPUインスタンスを選択
     const activeCPU = currentPlayer.value === BLACK ? cpuPlayer.value : cpu2Player.value;
 
-    // CPUの手を決定
-    const move = activeCPU.selectMove(board.value, currentPlayer.value);
+    // CPUの手を決定（非同期で待機）
+    const move = await activeCPU.selectMove(board.value, currentPlayer.value);
     console.log(`${currentPlayer.value === BLACK ? '黒' : '白'}のCPUが選んだ手:`, move);
 
     if (move) {

@@ -1,0 +1,20 @@
+{
+  "format": "layers-model",
+  "generatedBy": "TensorFlow.js Converter",
+  "convertedBy": "tensorflowjs_converter",
+  "modelTopology": {
+    "input_shape": [
+      8,
+      8,
+      3
+    ],
+    "output_shape": [
+      [
+        65
+      ],
+      [
+        1
+      ]
+    ]
+  }
+}
