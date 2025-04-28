@@ -6,6 +6,8 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "github.copilot",
+        "github.copilot-chat",
         "EditorConfig.EditorConfig",
         "esbenp.prettier-vscode",
         "Vue.volar",
@@ -18,7 +20,8 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.codeActionsOnSave": {
           "source.fixAll.eslint": "explicit"
-        }
+        },
+        "chat.promptFiles": true
       }
     }
   },
