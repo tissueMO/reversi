@@ -22,7 +22,7 @@
           v-for="(cell, colIndex) in row"
           :key="`cell-${rowIndex}-${colIndex}`"
           class="board-cell"
-          :class="{ 'valid-move': isValidMove(rowIndex, colIndex) && !animationManager.isAnimating.value && !isOpponentTurn }"
+          :class="{ 'valid-move': isValidMove(rowIndex, colIndex) && !animationManager.isAnimating.value }"
           @click="makeMove(rowIndex, colIndex)"
         >
           <div
@@ -34,7 +34,7 @@
               'flipping': animationManager.isFlipping(rowIndex, colIndex)
             }"
           />
-          <div v-else-if="isValidMove(rowIndex, colIndex) && !animationManager.isAnimating.value && !isOpponentTurn" class="valid-move-indicator" />
+          <div v-else-if="isValidMove(rowIndex, colIndex) && !animationManager.isAnimating.value" class="valid-move-indicator" />
         </div>
       </div>
     </div>
@@ -139,13 +139,34 @@ const animationManager = new AnimationManager();
 
 /**
  * CPUプレイヤーの制御クラスのインスタンス
+ * リアクティブな状態として扱うためrefで包む
  */
-const cpuController = new CPUController(gameLogic);
+const cpuController = ref(new CPUController(gameLogic));
 
 /**
  * 盤面の状態への参照（リアクティブ）
  */
 const board = ref<number[][]>(gameLogic.getBoard());
+
+/**
+ * 石の数の変化を検知するためのリアクティブな値
+ * boardが変更されるたびに更新される
+ */
+const boardCount = ref<{black: number, white: number}>({
+  black: 2,
+  white: 2,
+});
+
+/**
+ * 盤面の変化を監視して、石の数を更新する
+ */
+watch(board, () => {
+  boardCount.value = {
+    black: gameLogic.getBlackCount(),
+    white: gameLogic.getWhiteCount(),
+  };
+  console.log(`盤面更新: 黒石=${boardCount.value.black}, 白石=${boardCount.value.white}`);
+}, { immediate: true, deep: true });
 
 /**
  * プレイヤーが操作する石の色
@@ -168,6 +189,86 @@ const showConfetti = ref<boolean>(false);
 const boardRef = ref<HTMLElement | null>(null);
 
 /**
+ * プレイヤー色に対応するCSSクラス
+ */
+const playerColorClass = computed((): string => {
+  return playerColor.value === BLACK ? 'black-icon' : 'white-icon';
+});
+
+/**
+ * 相手色に対応するCSSクラス
+ */
+const opponentColorClass = computed((): string => {
+  return playerColor.value === BLACK ? 'white-icon' : 'black-icon';
+});
+
+/**
+ * プレイヤーの石の数
+ */
+const playerCount = computed((): number => {
+  return playerColor.value === BLACK ? boardCount.value.black : boardCount.value.white;
+});
+
+/**
+ * 相手の石の数
+ */
+const opponentCount = computed((): number => {
+  return playerColor.value === BLACK ? boardCount.value.white : boardCount.value.black;
+});
+
+/**
+ * プレイヤーが勝ったかどうか
+ */
+const isPlayerWin = computed((): boolean => {
+  return playerCount.value > opponentCount.value;
+});
+
+/**
+ * ゲーム結果のテキスト
+ */
+const gameResultText = computed((): string => {
+  if (isPlayerWin.value) {
+    return 'あなたの勝ち！';
+  } else if (opponentCount.value > playerCount.value) {
+    return '相手の勝ち！';
+  } else {
+    return '引き分け';
+  }
+});
+
+/**
+ * プレイヤー1の表示名（対戦モードによって異なる）
+ */
+const playerDisplayName = computed((): string => {
+  switch (cpuController.value.gameMode) {
+    case 'twoPlayers':
+      return 'プレイヤー1';
+    case 'playerVsCPU':
+      return 'あなた';
+    case 'cpuVsCpu':
+      return 'CPU.1';
+    default:
+      return 'プレイヤー1';
+  }
+});
+
+/**
+ * プレイヤー2（相手）の表示名（対戦モードによって異なる）
+ */
+const opponentDisplayName = computed((): string => {
+  switch (cpuController.value.gameMode) {
+    case 'twoPlayers':
+      return 'プレイヤー2';
+    case 'playerVsCPU':
+      return 'CPU';
+    case 'cpuVsCpu':
+      return 'CPU.2';
+    default:
+      return 'プレイヤー2';
+  }
+});
+
+/**
  * ゲームボードを初期状態に設定
  */
 const initializeBoard = (): void => {
@@ -177,8 +278,8 @@ const initializeBoard = (): void => {
   // プレイヤーの色をランダムに決定（対戦性の確保）
   playerColor.value = Math.random() < 0.5 ? BLACK : WHITE;
 
-  // 盤面をリアクティブなrefに適用
-  board.value = gameLogic.getBoard();
+  // 盤面をリアクティブなrefに適用（参照を完全に新しくする）
+  board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
 
   // アニメーション状態をリセット
   animationManager.reset();
@@ -186,24 +287,44 @@ const initializeBoard = (): void => {
   // 結果表示状態をリセット
   showResultModal.value = false;
   showConfetti.value = false;
+
+  // デバッグ情報を出力
+  console.log(`初期盤面設定完了 - 黒石: ${gameLogic.getBlackCount()}個, 白石: ${gameLogic.getWhiteCount()}個`);
 };
 
 /**
  * 相手のターンかどうかを判定
+ * playerVsCPUモードでは「CPUのターン」を意味し、
+ * その他のモードでは「プレイヤーの色と現在の手番が違うか」を判定する
  */
 const isOpponentTurn = computed(() => {
-  return cpuController.isOpponentTurn(playerColor.value, gameLogic.getCurrentPlayer());
+  // CPU対CPUモードの場合は常にCPUのターン
+  if (cpuController.value.isCPUvsCPUMode()) {
+    return true;
+  }
+
+  // プレイヤー対CPUモードの場合は、現在の手番がプレイヤーの色と一致しなければCPUのターン
+  if (cpuController.value.isPlayerVsCPUMode()) {
+    return gameLogic.getCurrentPlayer() !== playerColor.value;
+  }
+
+  // 2プレイヤーモードの場合は、プレイヤー1の色と現在の手番が一致しなければ相手のターン
+  return gameLogic.getCurrentPlayer() !== playerColor.value;
 });
 
 /**
  * 相手（CPU）の手番処理
  */
 const handleOpponentTurn = async () => {
-  // CPU対戦モードがオフの場合や、現在がCPUのターンでない場合は何もしない
-  if (!cpuController.isPlayerVsCPUMode() ||
-      !isOpponentTurn.value ||
+  // CPUプレイヤーモードがオフの場合や、ゲームが終了している場合は何もしない
+  if (!cpuController.value.isPlayerVsCPUMode() ||
       gameLogic.isGameOver() ||
       animationManager.isAnimating.value) {
+    return;
+  }
+
+  // プレイヤー対CPUモードで、現在の手番がプレイヤーの色と一致する場合は何もしない（プレイヤーの番）
+  if (gameLogic.getCurrentPlayer() === playerColor.value) {
     return;
   }
 
@@ -214,10 +335,10 @@ const handleOpponentTurn = async () => {
     animationManager.setAnimating(true);
 
     // CPUの手を決定
-    const move = await cpuController.decideCPUMove(gameLogic.getCurrentPlayer());
+    const move = await cpuController.value.decideCPUMove(gameLogic.getCurrentPlayer());
 
     // 状態が変化した可能性があるため再チェック
-    if (gameLogic.isGameOver() || !isOpponentTurn.value) {
+    if (gameLogic.isGameOver()) {
       animationManager.setAnimating(false);
       return;
     }
@@ -243,21 +364,22 @@ const handleOpponentTurn = async () => {
  */
 const handleCPUvsCPUTurn = async (): Promise<void> => {
   // CPU対CPUモードがオフの場合や、ゲームが終了している場合は何もしない
-  if (!cpuController.isCPUvsCPUMode() ||
+  if (!cpuController.value.isCPUvsCPUMode() ||
       gameLogic.isGameOver() ||
       animationManager.isAnimating.value) {
     return;
   }
 
   try {
-    console.log(`${gameLogic.getCurrentPlayer() === BLACK ? '黒' : '白'}のCPUが手を考えています...`);
+    const currentPlayer = gameLogic.getCurrentPlayer();
+    console.log(`${currentPlayer === BLACK ? '黒' : '白'}のCPUが手を考えています...`);
 
     // CPU処理中に明示的にアニメーション状態にして、ユーザー操作を防止
     animationManager.setAnimating(true);
 
     // CPUの手を決定
-    const move = await cpuController.decideCPUMove(gameLogic.getCurrentPlayer());
-    console.log(`${gameLogic.getCurrentPlayer() === BLACK ? '黒' : '白'}のCPUが選んだ手:`, move);
+    const move = await cpuController.value.decideCPUMove(currentPlayer);
+    console.log(`${currentPlayer === BLACK ? '黒' : '白'}のCPUが選んだ手:`, move);
 
     if (move) {
       // CPUの手を実行
@@ -268,7 +390,7 @@ const handleCPUvsCPUTurn = async (): Promise<void> => {
         setTimeout(() => handleCPUvsCPUTurn(), 300);
       }
     } else {
-      console.log(`${gameLogic.getCurrentPlayer() === BLACK ? '黒' : '白'}のCPUは有効な手がありません`);
+      console.log(`${currentPlayer === BLACK ? '黒' : '白'}のCPUは有効な手がありません`);
       // CPUに有効な手がなかった場合はターン切り替え処理
       handleNoValidMoves();
 
@@ -332,8 +454,16 @@ const internalMakeMove = async (row: number, col: number): Promise<void> => {
     return;
   }
 
-  // アニメーション終了後、次がCPUの手番であれば自動で打つ
-  handleOpponentTurn();
+  // CPU対CPUモードの場合は自動的に次の手の処理は行わない
+  // （handleCPUvsCPUTurnメソッドがタイマーで自動的に次の手を実行する）
+  if (cpuController.value.isCPUvsCPUMode()) {
+    return;
+  }
+
+  // プレイヤー対CPUモードの場合のみ、次がCPUの手番であれば自動で打つ
+  if (cpuController.value.isPlayerVsCPUMode()) {
+    handleOpponentTurn();
+  }
 };
 
 /**
@@ -345,10 +475,20 @@ const makeMove = async (row: number, col: number): Promise<void> => {
     return;
   }
 
-  // CPUの番でユーザーがクリックした場合は無視
-  if (isOpponentTurn.value) {
+  // プレイヤー対CPUモードの場合、プレイヤーの色のターンのみ操作可能
+  if (cpuController.value.isPlayerVsCPUMode()) {
+    // 現在の手番がプレイヤーの色と一致する場合のみ操作可能
+    if (gameLogic.getCurrentPlayer() !== playerColor.value) {
+      console.log('CPUのターンなので操作できません');
+      return;
+    }
+  }
+  // CPU対CPUモードの場合、プレイヤーによる操作は許可しない
+  else if (cpuController.value.isCPUvsCPUMode()) {
+    console.log('CPU対CPUモードではプレイヤーは操作できません');
     return;
   }
+  // 通常の2プレイヤーモードや、その他の場合は常に操作可能
 
   await internalMakeMove(row, col);
 };
@@ -388,10 +528,10 @@ const resetGame = (): void => {
   setupGame();
 
   // ゲームリセット後の処理
-  if (cpuController.isPlayerVsCPUMode()) {
+  if (cpuController.value.isPlayerVsCPUMode()) {
     // プレイヤー対CPUの場合、CPUの手番があれば自動で打つ
     handleOpponentTurn();
-  } else if (cpuController.isCPUvsCPUMode()) {
+  } else if (cpuController.value.isCPUvsCPUMode()) {
     // CPU対CPUの場合、自動で対戦を開始
     setTimeout(() => {
       handleCPUvsCPUTurn();
@@ -407,7 +547,14 @@ const setupGame = (): void => {
     console.log('ゲーム設定を初期化します。モード:', props.gameMode);
 
     // CPUコントローラーの設定を更新
-    cpuController.updateSettings(props.gameMode, props.cpuLevel, props.cpu2Level);
+    cpuController.value.updateSettings(props.gameMode, props.cpuLevel, props.cpu2Level);
+
+    // 盤面表示を強制的に更新（参照を完全に新しくし、石の数の表示を正しくするため）
+    board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
+
+    // デバッグ情報
+    console.log(`ゲーム設定適用完了 - 黒石: ${gameLogic.getBlackCount()}個, 白石: ${gameLogic.getWhiteCount()}個`);
+    console.log(`プレイヤーの色: ${playerColor.value === BLACK ? '黒' : '白'}`);
 
   } catch (error) {
     console.error('ゲーム設定の初期化中にエラーが発生しました:', error);
@@ -488,25 +635,35 @@ defineExpose({
 /**
  * 親コンポーネントからの設定変更を監視
  */
-watch([() => props.gameMode, () => props.cpuLevel, () => props.cpu2Level],
+watch(
+  [() => props.gameMode, () => props.cpuLevel, () => props.cpu2Level],
   ([newGameMode, newCpuLevel, newCpu2Level]) => {
     console.log('親コンポーネントから設定が変更されました:', newGameMode, newCpuLevel, newCpu2Level);
 
-    // CPUコントローラーの設定を更新
-    cpuController.updateSettings(newGameMode, newCpuLevel, newCpu2Level);
+    // ゲームを完全にリセット
+    initializeBoard();
+
+    // CPUコントローラーを完全に再作成して確実に状態を更新
+    cpuController.value = new CPUController(gameLogic);
+    cpuController.value.updateSettings(newGameMode, newCpuLevel, newCpu2Level);
+
+    // boardの参照を確実に更新し、リアクティブな更新を強制する
+    board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
 
     // 更新後、CPUが手番であれば自動で打つ
-    if (cpuController.isPlayerVsCPUMode()) {
-      setTimeout(() => {
-        handleOpponentTurn();
-      }, 500);
-    } else if (cpuController.isCPUvsCPUMode()) {
-      setTimeout(() => {
-        handleCPUvsCPUTurn();
-      }, 500);
+    if (cpuController.value.isPlayerVsCPUMode()) {
+      setTimeout(() => handleOpponentTurn(), 50);
+    } else if (cpuController.value.isCPUvsCPUMode()) {
+      setTimeout(() => handleCPUvsCPUTurn(), 50);
     }
+
+    // デバッグ情報の出力
+    console.log('CPUコントローラーを再作成しました。モード:', cpuController.value.gameMode);
+    console.log('プレイヤー表示名:', playerDisplayName.value);
+    console.log('相手表示名:', opponentDisplayName.value);
+    console.log('石の数 - プレイヤー:', playerCount.value, '相手:', opponentCount.value);
   },
-  { immediate: true }, // コンポーネントのマウント時に即座に実行
+  { immediate: true },
 );
 
 /**
@@ -551,86 +708,6 @@ onUnmounted(() => {
 });
 
 /**
- * プレイヤー色に対応するCSSクラス
- */
-const playerColorClass = computed((): string => {
-  return playerColor.value === BLACK ? 'black-icon' : 'white-icon';
-});
-
-/**
- * 相手色に対応するCSSクラス
- */
-const opponentColorClass = computed((): string => {
-  return playerColor.value === BLACK ? 'white-icon' : 'black-icon';
-});
-
-/**
- * プレイヤーの石の数
- */
-const playerCount = computed((): number => {
-  return gameLogic.getStoneCount(playerColor.value);
-});
-
-/**
- * 相手の石の数
- */
-const opponentCount = computed((): number => {
-  return gameLogic.getStoneCount(playerColor.value === BLACK ? WHITE : BLACK);
-});
-
-/**
- * プレイヤーが勝ったかどうか
- */
-const isPlayerWin = computed((): boolean => {
-  return playerCount.value > opponentCount.value;
-});
-
-/**
- * ゲーム結果のテキスト
- */
-const gameResultText = computed((): string => {
-  if (isPlayerWin.value) {
-    return 'あなたの勝ち！';
-  } else if (opponentCount.value > playerCount.value) {
-    return '相手の勝ち！';
-  } else {
-    return '引き分け';
-  }
-});
-
-/**
- * プレイヤー1の表示名（対戦モードによって異なる）
- */
-const playerDisplayName = computed((): string => {
-  switch (cpuController.gameMode) {
-    case 'twoPlayers':
-      return 'プレイヤー1';
-    case 'playerVsCPU':
-      return 'あなた';
-    case 'cpuVsCpu':
-      return 'CPU.1';
-    default:
-      return 'プレイヤー1';
-  }
-});
-
-/**
- * プレイヤー2（相手）の表示名（対戦モードによって異なる）
- */
-const opponentDisplayName = computed((): string => {
-  switch (cpuController.gameMode) {
-    case 'twoPlayers':
-      return 'プレイヤー2';
-    case 'playerVsCPU':
-      return 'CPU';
-    case 'cpuVsCpu':
-      return 'CPU.2';
-    default:
-      return 'プレイヤー2';
-  }
-});
-
-/**
  * UI表示のための有効な手の判定
  */
 const isValidMove = (row: number, col: number): boolean => {
@@ -639,7 +716,25 @@ const isValidMove = (row: number, col: number): boolean => {
     return false;
   }
 
-  return gameLogic.canPlaceAt(row, col);
+  // まず、そもそも置けるかの判定
+  if (!gameLogic.canPlaceAt(row, col)) {
+    return false;
+  }
+
+  // プレイヤー対CPUモードでは、CPUの手番時には操作不可
+  if (cpuController.value.isPlayerVsCPUMode()) {
+    if (gameLogic.getCurrentPlayer() !== playerColor.value) {
+      return false;
+    }
+  }
+
+  // CPU対CPUモードでは常に操作不可
+  if (cpuController.value.isCPUvsCPUMode()) {
+    return false;
+  }
+
+  // それ以外の場合は置ける
+  return true;
 };
 
 /**

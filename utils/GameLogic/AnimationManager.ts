@@ -82,6 +82,7 @@ export class AnimationManager {
 
     // 同心円状に広がるアニメーションの実行
     let maxDelay = 0;
+    const animationPromises: Promise<void>[] = [];
 
     for (const flip of allFlips) {
       const { row, col } = flip.position;
@@ -104,8 +105,12 @@ export class AnimationManager {
         }, delay);
       });
 
-      await animationPromise;
+      // 並行して実行するためにPromiseを配列に追加
+      animationPromises.push(animationPromise);
     }
+
+    // すべてのアニメーションの完了を待機
+    await Promise.all(animationPromises);
 
     // アニメーション後の追加の待機時間
     const pauseAfterAnimation = 300;

@@ -70,10 +70,9 @@ export class CPUController {
       return true;
     }
 
-    // プレイヤー対CPUモードの場合、プレイヤーの色ではない方がCPUの色
+    // プレイヤー対CPUモードの場合、現在の手番がプレイヤーの色と一致しない場合はCPUのターン
     if (this._gameMode === 'playerVsCPU') {
-      const opponentColor = playerColor === BLACK ? WHITE : BLACK;
-      return currentPlayer === opponentColor;
+      return currentPlayer !== playerColor;
     }
 
     return false;
@@ -81,13 +80,12 @@ export class CPUController {
 
   /**
    * CPUの手を決定して返す
-   * @param playerColor プレイヤーの色
+   * @param currentPlayer 現在の手番プレイヤー
    * @returns CPUが選択した手の位置。または有効な手がない場合はnull
    */
   public async decideCPUMove(currentPlayer: number): Promise<Position | null> {
     // 対応するCPUプレイヤーを選択
     const activeCPU = this.getActiveCPU(currentPlayer);
-
     if (!activeCPU) return null;
 
     // CPUの手を決定する思考時間を設定
@@ -104,9 +102,11 @@ export class CPUController {
    */
   private getActiveCPU(currentPlayer: number): CPUPlayer | null {
     if (this._gameMode === 'playerVsCPU') {
+      // プレイヤー対CPUモードの場合は常に_cpuPlayerを返す
       return this._cpuPlayer;
     }
     else if (this._gameMode === 'cpuVsCpu') {
+      // CPU対CPUモードの場合、黒番なら_cpuPlayer、白番なら_cpu2Playerを返す
       return currentPlayer === BLACK ? this._cpuPlayer : this._cpu2Player;
     }
 
