@@ -19,8 +19,8 @@
 
 1. 要件定義: (ユーザー)
 2. 仕様策定プロンプト: [specification.prompt](prompts/specification.prompt.md)
-3. 実装プロンプト: [implementation.prompt](prompts/implementation.prompt.md)
-4. テストプロンプト: [test.prompt](prompts/test.prompt.md)
+3. プロダクションコード実装プロンプト: [implementation.prompt](prompts/implementation.prompt.md)
+4. テストコード実装プロンプト: [test.prompt](prompts/test.prompt.md)
 5. 受入判断: (ユーザー)
 
 ### 仕様策定
@@ -31,20 +31,21 @@
 - 作成した仕様は [specifications.md](../docs/specifications.md) に出力します。
 - 作成した仕様を満たすことを担保するためのテスト仕様を [specifications.test.md](../docs/specifications.test.md) に出力します。
 
-### 実装
+### プロダクションコード実装
 
 [implementation.prompt](prompts/implementation.prompt.md)
 
 - [specifications.md](../docs/specifications.md) で記述された仕様に従い、コーディングを行います。
 - 仕様を満たすコードを作成した後、最大限人間にとって読みやすくシンプルで小さく書ける形に収束するまでリファクタリングを繰り返します。
-- この役割においてテストは担いません。
+- この役割においてテストコードの変更は禁止です。
 
-### テスト
+### テストコード実装
 
 [test.prompt](prompts/test.prompt.md)
 
-- [specifications.test.md](../docs/specifications.test.md) で記述されたテスト仕様および実際の実装に従い、テストコードを実装します。
-- 作成したテストコードがすべてパスするまで修正を繰り返します。
+- [specifications.test.md](../docs/specifications.test.md) で記述されたテスト仕様およびプロダクションコードに基づき、テストコードを実装します。
+- 作成したテストコードがすべてパスするまでテストコードの修正を繰り返します。
+- この役割においてプロダクションコードの変更は禁止です。
 
 ## ソフトウェア概要
 
