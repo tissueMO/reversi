@@ -4,7 +4,7 @@ import { CPULevel } from './index';
 
 /**
  * 初級CPUプレイヤークラス
- * 有効手からランダム選択戦略の実装
+ * ※有効手からランダムに選択する戦略を取る
  */
 export class EasyCPUPlayer extends BaseCPUPlayer {
   /**
@@ -15,7 +15,7 @@ export class EasyCPUPlayer extends BaseCPUPlayer {
   }
 
   /**
-   * 初級難易度の手をランダムに選択します。
+   * {@inheritdoc}
    */
   protected async selectMoveByStrategy(_board: number[][], _currentPlayer: number, validMoves: Position[]): Promise<Position> {
     const randomIndex: number = Math.floor(Math.random() * validMoves.length);

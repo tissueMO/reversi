@@ -2,7 +2,7 @@
   <div v-if="isOpen" class="modal-overlay">
     <div class="modal-content">
       <button v-if="showCloseButton" class="close-button" @click="closeModal">&times;</button>
-      <slot/>
+      <slot />
     </div>
   </div>
 </template>
@@ -10,10 +10,6 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue';
 
-/**
- * 汎用モーダルクラス
- * モーダル表示・閉じる制御を担う
- */
 const props = defineProps<{
   isOpen: boolean;
   showCloseButton?: boolean;
@@ -23,9 +19,6 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-/**
- * モーダルを閉じます。
- */
 const closeModal = (): void => {
   emit('close');
 };

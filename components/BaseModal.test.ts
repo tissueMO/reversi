@@ -7,6 +7,7 @@ describe('ベースモーダル', () => {
     const wrapper = mount(BaseModal, { props: { isOpen: true } });
     expect(wrapper.find('.modal-overlay').exists()).toBe(true);
   });
+
   it('モーダルが非表示になる', () => {
     const wrapper = mount(BaseModal, { props: { isOpen: false } });
     expect(wrapper.find('.modal-overlay').exists()).toBe(false);

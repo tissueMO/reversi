@@ -4,20 +4,16 @@ import { EasyCPUPlayer } from './EasyCPUPlayer';
 import { MediumCPUPlayer } from './MediumCPUPlayer';
 import { HardCPUPlayer } from './HardCPUPlayer';
 import { UltimateCPUPlayer } from './UltimateCPUPlayer';
-
-// TensorFlow.jsの初期化（初回のみ）
 import * as tf from '@tensorflow/tfjs';
 
-// ブラウザ環境では明示的なバックエンド設定が必要
+// TensorFlow.jsの初期化（初回のみ）
 (async function initializeTensorFlow() {
   try {
-    // バックエンドの設定前にweb環境と互換性のあるバージョンを確認
     if (tf.getBackend() === undefined) {
-      // CPU バックエンドを明示的にセット（ブラウザでは最も安定）
       await tf.setBackend('cpu');
-      await tf.ready(); // TensorFlow.jsの初期化完了を待機
-      console.log('TensorFlow.js初期化完了: バックエンド =', tf.getBackend());
+      await tf.ready();
     }
+    console.log('TensorFlow.js 初期化完了: バックエンド=', tf.getBackend());
   } catch (error) {
     console.error('TensorFlow.jsの初期化に失敗しました:', error);
   }
@@ -27,30 +23,27 @@ import * as tf from '@tensorflow/tfjs';
  * CPUプレイヤーの難易度レベル
  */
 export enum CPULevel {
-  EASY = 'easy',      // 初級: ランダムな手を選ぶ
-  MEDIUM = 'medium',  // 中級: 基本的な戦略を使う
-  HARD = 'hard',      // 上級: 高度な戦略を使う
-  ULTIMATE = 'ultimate' // 最強: 学習済みTensorFlowモデルを使う
+  EASY = 'easy',
+  MEDIUM = 'medium',
+  HARD = 'hard',
+  ULTIMATE = 'ultimate',
 }
 
 /**
  * CPUプレイヤーのファクトリークラス
- * 適切な難易度のCPUプレイヤーインスタンスを生成する
  */
 export class CPUPlayer {
   private player: BaseCPUPlayer;
 
   /**
-   * CPUプレイヤーのコンストラクタ
-   * @param level CPU難易度
+   * コンストラクター
    */
   constructor(level: CPULevel = CPULevel.MEDIUM) {
-    // 難易度に応じた適切なCPUプレイヤーを生成
     this.player = CPUPlayer.createPlayerByLevel(level);
   }
 
   /**
-   * 難易度に応じたCPUプレイヤーインスタンスを生成する
+   * 難易度に応じたCPUプレイヤーインスタンスを生成します。
    */
   private static createPlayerByLevel(level: CPULevel): BaseCPUPlayer {
     switch (level) {
@@ -68,29 +61,23 @@ export class CPUPlayer {
   }
 
   /**
-   * 設定されている難易度の取得
+   * 設定されている難易度を返します。
    */
   getLevel(): CPULevel {
     return this.player.getLevel();
   }
 
   /**
-   * 難易度の設定
-   * @param level 設定する難易度
+   * 難易度を設定します。
    */
   setLevel(level: CPULevel): void {
-    // 新しい難易度のCPUプレイヤーを生成
     this.player = CPUPlayer.createPlayerByLevel(level);
   }
 
   /**
-   * 現在の盤面状況から次の手を決定する
-   * @param board 現在の盤面
-   * @param currentPlayer 現在のプレイヤー（1:黒、2:白）
-   * @returns 次の手の位置、有効な手がない場合はnull
+   * 現在の盤面状況から次の手を決定します。
    */
   async selectMove(board: number[][], currentPlayer: number): Promise<Position | null> {
-    // 内部のプレイヤーインスタンスに処理を委譲
     return await this.player.selectMove(board, currentPlayer);
   }
 }

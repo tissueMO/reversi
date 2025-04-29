@@ -7,31 +7,16 @@
           <label class="setting-label">対戦モード</label>
           <div class="radio-container">
             <label class="radio-label">
-              <input
-                v-model="tempGameMode"
-                type="radio"
-                name="gameMode"
-                value="twoPlayers"
-              >
-              プレイヤー対プレイヤー
+              <input v-model="tempGameMode" type="radio" name="gameMode" value="twoPlayers">
+              プレイヤー vs. プレイヤー
             </label>
             <label class="radio-label">
-              <input
-                v-model="tempGameMode"
-                type="radio"
-                name="gameMode"
-                value="playerVsCPU"
-              >
-              プレイヤー対CPU
+              <input v-model="tempGameMode" type="radio" name="gameMode" value="playerVsCPU">
+              プレイヤー vs. CPU
             </label>
             <label class="radio-label">
-              <input
-                v-model="tempGameMode"
-                type="radio"
-                name="gameMode"
-                value="cpuVsCpu"
-              >
-              CPU対CPU
+              <input v-model="tempGameMode" type="radio" name="gameMode" value="cpuVsCpu">
+              CPU vs. CPU
             </label>
           </div>
         </div>
@@ -39,39 +24,19 @@
           <label class="setting-label">{{ tempGameMode === 'playerVsCPU' ? 'CPU 強さ' : 'CPU.1 強さ' }}</label>
           <div class="radio-container radio-row">
             <label class="radio-label">
-              <input
-                v-model="tempCpuLevel"
-                type="radio"
-                name="cpuLevel"
-                :value="CPULevel.EASY"
-              >
+              <input v-model="tempCpu1Level" type="radio" name="cpu1Level" :value="CPULevel.EASY">
               初級
             </label>
             <label class="radio-label">
-              <input
-                v-model="tempCpuLevel"
-                type="radio"
-                name="cpuLevel"
-                :value="CPULevel.MEDIUM"
-              >
+              <input v-model="tempCpu1Level" type="radio" name="cpu1Level" :value="CPULevel.MEDIUM">
               中級
             </label>
             <label class="radio-label">
-              <input
-                v-model="tempCpuLevel"
-                type="radio"
-                name="cpuLevel"
-                :value="CPULevel.HARD"
-              >
+              <input v-model="tempCpu1Level" type="radio" name="cpu1Level" :value="CPULevel.HARD">
               上級
             </label>
             <label class="radio-label">
-              <input
-                v-model="tempCpuLevel"
-                type="radio"
-                name="cpuLevel"
-                :value="CPULevel.ULTIMATE"
-              >
+              <input v-model="tempCpu1Level" type="radio" name="cpu1Level" :value="CPULevel.ULTIMATE">
               最強
             </label>
           </div>
@@ -80,39 +45,19 @@
           <label class="setting-label">CPU.2 強さ</label>
           <div class="radio-container radio-row">
             <label class="radio-label">
-              <input
-                v-model="tempCpu2Level"
-                type="radio"
-                name="cpu2Level"
-                :value="CPULevel.EASY"
-              >
+              <input v-model="tempCpu2Level" type="radio" name="cpu2Level" :value="CPULevel.EASY">
               初級
             </label>
             <label class="radio-label">
-              <input
-                v-model="tempCpu2Level"
-                type="radio"
-                name="cpu2Level"
-                :value="CPULevel.MEDIUM"
-              >
+              <input v-model="tempCpu2Level" type="radio" name="cpu2Level" :value="CPULevel.MEDIUM">
               中級
             </label>
             <label class="radio-label">
-              <input
-                v-model="tempCpu2Level"
-                type="radio"
-                name="cpu2Level"
-                :value="CPULevel.HARD"
-              >
+              <input v-model="tempCpu2Level" type="radio" name="cpu2Level" :value="CPULevel.HARD">
               上級
             </label>
             <label class="radio-label">
-              <input
-                v-model="tempCpu2Level"
-                type="radio"
-                name="cpu2Level"
-                :value="CPULevel.ULTIMATE"
-              >
+              <input v-model="tempCpu2Level" type="radio" name="cpu2Level" :value="CPULevel.ULTIMATE">
               最強
             </label>
           </div>
@@ -132,10 +77,6 @@ import { ref, defineEmits, defineProps, watch, onMounted } from 'vue';
 import { CPULevel } from '~/utils/CPUPlayer';
 import BaseModal from '~/components/BaseModal.vue';
 
-/**
- * ゲーム設定モーダルクラス
- * 対戦モード・CPU強さ・リセット制御を担う
- */
 const props = defineProps<{
   isOpen: boolean;
   showCloseButton?: boolean;
@@ -144,36 +85,34 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:settings', settings: GameSettings): void,
-  (e: 'new-game' | 'close'): void
+  (e: 'new-game' | 'close'): void;
 }>();
 
-/**
- * ゲーム設定型
- */
 interface GameSettings {
   gameMode: GameMode;
-  cpuLevel: CPULevel;
+  cpu1Level: CPULevel;
   cpu2Level: CPULevel;
 }
 
 const gameMode = ref<GameMode>('twoPlayers');
-const cpuLevel = ref<CPULevel>(CPULevel.MEDIUM);
+const cpu1Level = ref<CPULevel>(CPULevel.MEDIUM);
 const cpu2Level = ref<CPULevel>(CPULevel.MEDIUM);
+
 const tempGameMode = ref<GameMode>('twoPlayers');
-const tempCpuLevel = ref<CPULevel>(CPULevel.MEDIUM);
+const tempCpu1Level = ref<CPULevel>(CPULevel.MEDIUM);
 const tempCpu2Level = ref<CPULevel>(CPULevel.MEDIUM);
 
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     tempGameMode.value = gameMode.value;
-    tempCpuLevel.value = cpuLevel.value;
+    tempCpu1Level.value = cpu1Level.value;
     tempCpu2Level.value = cpu2Level.value;
   }
 });
 
 onMounted(() => {
   tempGameMode.value = gameMode.value;
-  tempCpuLevel.value = cpuLevel.value;
+  tempCpu1Level.value = cpu1Level.value;
   tempCpu2Level.value = cpu2Level.value;
 });
 
@@ -182,21 +121,20 @@ onMounted(() => {
  */
 const startNewGame = (): void => {
   gameMode.value = tempGameMode.value;
-  cpuLevel.value = tempCpuLevel.value;
+  cpu1Level.value = tempCpu1Level.value;
   cpu2Level.value = tempCpu2Level.value;
+
   const settings: GameSettings = {
     gameMode: gameMode.value,
-    cpuLevel: cpuLevel.value,
+    cpu1Level: cpu1Level.value,
     cpu2Level: cpu2Level.value,
   };
+
   emit('update:settings', settings);
   emit('new-game');
   emit('close');
 };
 
-/**
- * モーダルを閉じます。
- */
 const closeModal = (): void => {
   emit('close');
 };
@@ -234,7 +172,6 @@ const closeModal = (): void => {
   text-align: left;
 }
 
-/* 完全に新しいラジオボタンのレイアウト */
 .radio-container {
   display: flex;
   flex-direction: column;

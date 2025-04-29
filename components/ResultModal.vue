@@ -20,38 +20,29 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, computed } from 'vue';
 import BaseModal from './BaseModal.vue';
+import type { GameMode } from '../utils/GameLogic/constants';
 import { BLACK } from '../utils/GameLogic/constants';
 
-/**
- * ゲーム結果モーダルクラス
- * 勝敗・スコア・UI制御を担う
- */
 const props = defineProps<{
   isOpen: boolean;
   player1Count: number;
   player2Count: number;
   player1Color: number;
   player2Color: number;
-  gameMode?: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu';
+  gameMode?: GameMode;
 }>();
 
-/**
- * プレイヤー1色クラスを返します。
- */
+const emit = defineEmits<{
+  (e: 'close' | 'next-game'): void;
+}>();
+
 const player1ColorClass = computed((): string => {
   return props.player1Color === BLACK ? 'black-icon' : 'white-icon';
 });
-
-/**
- * プレイヤー2色クラスを返します。
- */
 const player2ColorClass = computed((): string => {
   return props.player2Color === BLACK ? 'black-icon' : 'white-icon';
 });
 
-/**
- * プレイヤー1表示名を返します。
- */
 const player1DisplayName = computed((): string => {
   switch (props.gameMode) {
     case 'playerVsCPU':
@@ -62,10 +53,6 @@ const player1DisplayName = computed((): string => {
       return 'プレイヤー1';
   }
 });
-
-/**
- * プレイヤー2表示名を返します。
- */
 const player2DisplayName = computed((): string => {
   switch (props.gameMode) {
     case 'playerVsCPU':
@@ -77,11 +64,8 @@ const player2DisplayName = computed((): string => {
   }
 });
 
-/**
- * 勝敗テキストを返します。
- */
 const resultText = computed((): string => {
-  if ((props.player1Count > props.player2Count)) {
+  if (props.player1Count > props.player2Count) {
     return `${player1DisplayName.value}の勝ち`;
   } else if (props.player1Count < props.player2Count) {
     return `${player2DisplayName.value}の勝ち`;
@@ -90,13 +74,6 @@ const resultText = computed((): string => {
   }
 });
 
-const emit = defineEmits<{
-  (e: 'close' | 'reset-game' | 'next-game'): void;
-}>();
-
-/**
- * 「次のゲームへ」ボタン押下時の処理を行います。
- */
 const handleNextGame = (): void => {
   emit('next-game');
   emit('close');

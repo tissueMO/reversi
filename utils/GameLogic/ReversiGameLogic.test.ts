@@ -7,6 +7,7 @@ describe('ReversiGameLogic', () => {
     const logic = new ReversiGameLogic();
     expect(logic.board.length).toBe(8);
     expect(logic.board[0].length).toBe(8);
+
     const flat = logic.board.flat();
     expect(flat.filter(x => x === BLACK).length).toBe(2);
     expect(flat.filter(x => x === WHITE).length).toBe(2);
@@ -20,7 +21,7 @@ describe('ReversiGameLogic', () => {
     logic.setCurrentPlayer(1);
     const result = logic.placeStone(move.row, move.col);
     expect(result.length > 0).toBe(true);
-    expect(logic.board[move.row][move.col]).toBe(1);
+    expect(logic.board[move.row][move.col]).toBe(BLACK);
   });
 
   it('無効な場所には石を置けない', () => {
@@ -33,16 +34,17 @@ describe('ReversiGameLogic', () => {
   it('石を置くと挟まれた石が反転する', () => {
     const logic = new ReversiGameLogic();
     const move = logic.getValidMoves(1)[0];
-    logic.placeStone(move.row, move.col, 1);
+    logic.placeStone(move.row, move.col);
     const flat = logic.board.flat();
-    expect(flat.includes(1)).toBe(true);
+    expect(flat.filter(f => f === BLACK).length).toBe(4);
+    expect(flat.filter(f => f === WHITE).length).toBe(1);
   });
 
   it('石を置ける場所がない場合は空配列を返す', () => {
     const logic = new ReversiGameLogic();
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = BLACK;
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        logic.board[y][x] = BLACK;
       }
     }
     expect(logic.getValidMoves(1)).toEqual([]);
@@ -51,9 +53,9 @@ describe('ReversiGameLogic', () => {
 
   it('パス判定が正しく動作する', () => {
     const logic = new ReversiGameLogic();
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = BLACK;
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        logic.board[y][x] = BLACK;
       }
     }
     expect(!logic.hasValidMove(1)).toBe(true);
@@ -62,9 +64,9 @@ describe('ReversiGameLogic', () => {
 
   it('ゲーム終了判定が正しい', () => {
     const logic = new ReversiGameLogic();
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = BLACK;
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        logic.board[y][x] = BLACK;
       }
     }
     logic.endGame();
@@ -90,9 +92,9 @@ describe('ReversiGameLogic', () => {
 
   it('合法手がない場合にパスが必要', () => {
     const logic = new ReversiGameLogic();
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = BLACK;
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        logic.board[y][x] = BLACK;
       }
     }
     expect(!logic.hasValidMove(1)).toBe(true);
@@ -101,9 +103,9 @@ describe('ReversiGameLogic', () => {
 
   it('石を置いた後に合法手がなくなればパスになる', () => {
     const logic = new ReversiGameLogic();
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = BLACK;
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        logic.board[y][x] = BLACK;
       }
     }
     logic.board[7][7] = EMPTY;

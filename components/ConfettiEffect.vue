@@ -1,31 +1,16 @@
 <template>
   <div v-if="isActive" class="confetti-container">
-    <div
-      v-for="(confetto, index) in confetti"
-      :key="index"
-      class="confetti"
-      :style="confettoStyle(confetto)"/>
+    <div v-for="(confetto, index) in confetti" :key="index" class="confetti" :style="confettoStyle(confetto)" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { defineProps, ref, onMounted, onUnmounted, computed, watch } from 'vue';
 
-/**
- * クラッカーアニメーションクラス
- * 紙吹雪エフェクトの表示・状態管理を担う
- */
 const props = defineProps<{
   isActive: boolean;
 }>();
 
-const COLORS: string[] = [
-  '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8BC34A', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722',
-];
-
-/**
- * 紙吹雪インターフェース
- */
 interface Confetto {
   x: number;
   y: number;
@@ -36,6 +21,14 @@ interface Confetto {
   angle: number;
   rotationSpeed: number;
 }
+
+let animationFrame: number | undefined;
+
+const COLORS: string[] = [
+  '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5',
+  '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50',
+  '#8BC34A', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722',
+];
 
 const confetti = ref<Confetto[]>(Array.from({ length: 100 }).map(() => ({
   x: 50,
@@ -48,11 +41,20 @@ const confetti = ref<Confetto[]>(Array.from({ length: 100 }).map(() => ({
   rotationSpeed: (Math.random() - 0.5) * 10,
 })));
 
-let animationFrame: number | undefined;
+const updateConfetti = (): void => {
+  confetti.value = confetti.value.map((confetto) => {
+    const angleRad = (confetto.angle * Math.PI) / 180;
+    confetto.x += Math.cos(angleRad) * confetto.speed * 0.3;
+    confetto.y += Math.sin(angleRad) * confetto.speed * 0.3 + 0.1;
+    confetto.rotation += confetto.rotationSpeed;
+    return confetto;
+  });
 
-/**
- * 紙吹雪のスタイルを返します。
- */
+  if (props.isActive) {
+    animationFrame = requestAnimationFrame(updateConfetti);
+  }
+};
+
 const confettoStyle = computed(() => {
   return (confetto: Confetto) => {
     return {
@@ -63,22 +65,6 @@ const confettoStyle = computed(() => {
     };
   };
 });
-
-/**
- * 紙吹雪アニメーションを更新します。
- */
-const updateConfetti = (): void => {
-  confetti.value = confetti.value.map(confetto => {
-    const angleRad = (confetto.angle * Math.PI) / 180;
-    confetto.x += Math.cos(angleRad) * confetto.speed * 0.3;
-    confetto.y += Math.sin(angleRad) * confetto.speed * 0.3 + 0.1;
-    confetto.rotation += confetto.rotationSpeed;
-    return confetto;
-  });
-  if (props.isActive) {
-    animationFrame = requestAnimationFrame(updateConfetti);
-  }
-};
 
 onMounted(() => {
   if (props.isActive) {
@@ -127,8 +113,14 @@ watch(
 }
 
 @keyframes fadeOut {
-  0% { opacity: 0.8; }
-  80% { opacity: 0.8; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 </style>

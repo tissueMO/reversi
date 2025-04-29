@@ -85,7 +85,7 @@
 
 ### 6. デバッグコンソール機能
 
-- window.\_\_reversiDebug.skipToEndGame()：終了 2 手前まで進める
+- window.\_\_reversiDebug.skipToEnding()：終了 2 手前まで進める
 - window.\_\_reversiDebug.forceGameEnd()：強制終了
 - window.\_\_reversiDebug.setPlayer(playerNum)：手番プレイヤーを設定（1:黒, 2:白）
 

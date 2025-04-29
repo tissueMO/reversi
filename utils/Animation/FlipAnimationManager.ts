@@ -5,7 +5,6 @@ import { AnimationManager } from './AnimationManager';
 
 /**
  * 石の反転アニメーション管理クラス
- * 反転アニメーションの状態・実行を担う
  */
 export class FlipAnimationManager extends AnimationManager {
   private flippingPieces: Ref<Set<string>>;
@@ -62,14 +61,17 @@ export class FlipAnimationManager extends AnimationManager {
    */
   public async animateFlip(placedPosition: Position, flippedPieces: Position[]): Promise<void> {
     this.isAnimatingRef.value = true;
+
     // 距離順アニメーションのための並び替え
-    const allFlips: Array<{position: Position, distance: number}> = flippedPieces.map(pos => {
-      const dx = pos.row - placedPosition.row;
-      const dy = pos.col - placedPosition.col;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      return { position: pos, distance };
-    });
-    allFlips.sort((a, b) => a.distance - b.distance);
+    const allFlips: Array<{position: Position, distance: number}> = flippedPieces
+      .map(pos => {
+        const dx = pos.row - placedPosition.row;
+        const dy = pos.col - placedPosition.col;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return { position: pos, distance };
+      })
+      .toSorted((a, b) => a.distance - b.distance);
+
     // 並列アニメーション実行
     const animationPromises: Promise<void>[] = [];
     for (const flip of allFlips) {
@@ -88,13 +90,13 @@ export class FlipAnimationManager extends AnimationManager {
       animationPromises.push(animationPromise);
     }
     await Promise.all(animationPromises);
+
     // アニメーション後の余韻待機
-    const pauseAfterAnimation = 300;
     await new Promise<void>(resolve => {
       setTimeout(() => {
         this.isAnimatingRef.value = false;
         resolve();
-      }, pauseAfterAnimation);
+      }, 300);
     });
   }
 }

@@ -6,11 +6,10 @@ import { BLACK, WHITE } from './constants';
 
 /**
  * CPU制御クラス
- * 対戦モード・CPU手番判定・思考制御を担う
  */
 export class CPUController {
-  private cpuPlayer: CPUPlayer | null = null;
-  private cpu2Player: CPUPlayer | null = null;
+  private cpuPlayer1: CPUPlayer | null = null;
+  private cpuPlayer2: CPUPlayer | null = null;
   private gameModeValue: GameMode = 'twoPlayers';
   private gameLogic: ReversiGameLogic;
 
@@ -24,21 +23,18 @@ export class CPUController {
   /**
    * ゲームモード・CPU設定を更新します。
    */
-  public updateSettings(
-    gameMode: GameMode,
-    cpuLevel: CPULevel,
-    cpu2Level: CPULevel,
-  ): void {
+  public updateSettings(gameMode: GameMode, cpu1Level: CPULevel, cpu2Level: CPULevel): void {
     this.gameModeValue = gameMode;
+
     if (gameMode === 'playerVsCPU') {
-      this.cpuPlayer = new CPUPlayer(cpuLevel);
-      this.cpu2Player = null;
+      this.cpuPlayer1 = new CPUPlayer(cpu1Level);
+      this.cpuPlayer2 = null;
     } else if (gameMode === 'cpuVsCpu') {
-      this.cpuPlayer = new CPUPlayer(cpuLevel);
-      this.cpu2Player = new CPUPlayer(cpu2Level);
+      this.cpuPlayer1 = new CPUPlayer(cpu1Level);
+      this.cpuPlayer2 = new CPUPlayer(cpu2Level);
     } else {
-      this.cpuPlayer = null;
-      this.cpu2Player = null;
+      this.cpuPlayer1 = null;
+      this.cpuPlayer2 = null;
     }
   }
 
@@ -53,10 +49,10 @@ export class CPUController {
    * 現在のターンがCPUのターンかどうかを返します。
    */
   public isOpponentTurn(playerColor: number, currentPlayer: number): boolean {
-    if (this.gameModeValue === 'cpuVsCpu') {
-      return true;
-    } else if (this.gameModeValue === 'playerVsCPU') {
+    if (this.gameModeValue === 'playerVsCPU') {
       return currentPlayer !== playerColor;
+    } else if (this.gameModeValue === 'cpuVsCpu') {
+      return true;
     } else {
       return false;
     }
@@ -70,6 +66,7 @@ export class CPUController {
     if (!activeCPU) {
       return null;
     }
+
     const thinkingTime = this.gameModeValue === 'cpuVsCpu' ? 800 : 1000;
     await new Promise((resolve) => setTimeout(resolve, thinkingTime));
     return await activeCPU.selectMove(this.gameLogic.getBoard(), currentPlayer);
@@ -80,11 +77,11 @@ export class CPUController {
    */
   private getActiveCPU(currentPlayer: number): CPUPlayer | null {
     if (this.gameModeValue === 'playerVsCPU') {
-      return this.cpuPlayer;
+      return this.cpuPlayer1;
     } else if (this.gameModeValue === 'cpuVsCpu' && currentPlayer === BLACK) {
-        return this.cpuPlayer;
+      return this.cpuPlayer1;
     } else if (this.gameModeValue === 'cpuVsCpu' && currentPlayer === WHITE) {
-      return this.cpu2Player;
+      return this.cpuPlayer2;
     } else {
       return null;
     }
@@ -94,17 +91,13 @@ export class CPUController {
    * CPU対CPUモードかどうかを返します。
    */
   public isCPUvsCPUMode(): boolean {
-    return (
-      this.gameModeValue === 'cpuVsCpu' &&
-      this.cpuPlayer !== null &&
-      this.cpu2Player !== null
-    );
+    return this.gameModeValue === 'cpuVsCpu' && this.cpuPlayer1 !== null && this.cpuPlayer2 !== null;
   }
 
   /**
    * プレイヤー対CPUモードかどうかを返します。
    */
   public isPlayerVsCPUMode(): boolean {
-    return this.gameModeValue === 'playerVsCPU' && this.cpuPlayer !== null;
+    return this.gameModeValue === 'playerVsCPU' && this.cpuPlayer1 !== null;
   }
 }

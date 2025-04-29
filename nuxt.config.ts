@@ -7,6 +7,7 @@ export default defineNuxtConfig({
     strict: true,
     tsConfig: {
       compilerOptions: {
+        target: 'es2023',
         baseUrl: '.',
         paths: {
           '@/*': ['./*'],

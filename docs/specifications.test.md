@@ -147,10 +147,10 @@
 
 ### デバッグ機能
 
-- タイトル: skipToEndGame() の動作
+- タイトル: skipToEnding() の動作
 
   - 観点: 終了 2 手前まで進める
-  - 手順: デバッグコンソールで skipToEndGame() を実行
+  - 手順: デバッグコンソールで skipToEnding() を実行
   - 期待: 盤面が終局 2 手前の状態になる
 
 - タイトル: forceGameEnd() の動作
