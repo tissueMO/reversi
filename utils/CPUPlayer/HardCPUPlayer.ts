@@ -1,7 +1,7 @@
 import { BaseCPUPlayer } from './BaseCPUPlayer';
 import type { Position } from '../GameLogic/constants';
 import { CPULevel } from './index';
-import { EMPTY } from '../GameLogic/constants';
+import { BLACK, EMPTY, WHITE } from '../GameLogic/constants';
 
 /**
  * 上級CPUプレイヤークラス
@@ -67,7 +67,7 @@ export class HardCPUPlayer extends BaseCPUPlayer {
             move.col,
           );
           score += flippedPieces.length;
-          const opponent = currentPlayer === 1 ? 2 : 1;
+          const opponent = currentPlayer === BLACK ? WHITE : BLACK;
           const opponentMoves = this.getValidMoves(testBoard, opponent);
           score -= opponentMoves.length * 2;
           return { move, score };

@@ -7,10 +7,10 @@ describe('結果モーダル', () => {
     const wrapper = mount(ResultModal, {
       props: {
         isOpen: true,
-        isPlayerWin: true,
-        playerCount: 34,
-        opponentCount: 30,
-        playerColor: 1,
+        player1Count: 34,
+        player2Count: 30,
+        player1Color: 1,
+        player2Color: 2,
         gameMode: 'twoPlayers',
       },
     });
@@ -25,14 +25,14 @@ describe('結果モーダル', () => {
     const wrapper = mount(ResultModal, {
       props: {
         isOpen: true,
-        isPlayerWin: false,
-        playerCount: 20,
-        opponentCount: 44,
-        playerColor: 2,
+        player1Count: 20,
+        player2Count: 44,
+        player1Color: 2,
+        player2Color: 1,
         gameMode: 'playerVsCPU',
       },
     });
-    expect(wrapper.text()).toContain('あなたの負け');
+    expect(wrapper.text()).toContain('CPUの勝ち');
     expect(wrapper.text()).toContain('あなた: 20');
     expect(wrapper.text()).toContain('CPU: 44');
     expect(wrapper.find('.white-icon').exists()).toBe(true);
@@ -43,10 +43,10 @@ describe('結果モーダル', () => {
     const wrapper = mount(ResultModal, {
       props: {
         isOpen: true,
-        isPlayerWin: true,
-        playerCount: 40,
-        opponentCount: 24,
-        playerColor: 1,
+        player1Count: 40,
+        player2Count: 24,
+        player1Color: 1,
+        player2Color: 2,
         gameMode: 'cpuVsCpu',
       },
     });
@@ -61,10 +61,10 @@ describe('結果モーダル', () => {
     const wrapper = mount(ResultModal, {
       props: {
         isOpen: true,
-        isPlayerWin: false,
-        playerCount: 32,
-        opponentCount: 32,
-        playerColor: 1,
+        player1Count: 32,
+        player2Count: 32,
+        player1Color: 1,
+        player2Color: 2,
         gameMode: 'twoPlayers',
       },
     });
@@ -76,10 +76,10 @@ describe('結果モーダル', () => {
     const wrapper = mount(ResultModal, {
       props: {
         isOpen: true,
-        isPlayerWin: false,
-        playerCount: 20,
-        opponentCount: 44,
-        playerColor: 2,
+        player1Count: 20,
+        player2Count: 44,
+        player1Color: 2,
+        player2Color: 1,
         gameMode: 'playerVsCPU',
       },
     });

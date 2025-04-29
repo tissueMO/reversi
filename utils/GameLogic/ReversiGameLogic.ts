@@ -202,12 +202,24 @@ export class ReversiGameLogic {
 
   /**
    * 終盤盤面を生成します。
+   * @param emptyCount 空きマス数
+   * @param player 石数が多くなるプレイヤー（1:黒, 2:白、省略時は均等）
    */
-  public generateEndGamePosition(emptyCount: number): void {
-    // 終盤盤面生成のための初期化
+  public generateEndGamePosition(emptyCount: number, player?: number): void {
     const totalCells = 64;
-    const blackCount = Math.floor((totalCells - emptyCount) / 2);
-    const whiteCount = totalCells - emptyCount - blackCount;
+    let blackCount: number;
+    let whiteCount: number;
+    const stones = totalCells - emptyCount;
+    if (player === BLACK) {
+      blackCount = Math.floor(stones / 2) + 1;
+      whiteCount = stones - blackCount;
+    } else if (player === WHITE) {
+      whiteCount = Math.floor(stones / 2) + 1;
+      blackCount = stones - whiteCount;
+    } else {
+      blackCount = Math.floor(stones / 2);
+      whiteCount = stones - blackCount;
+    }
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
         this.board[i][j] = EMPTY;

@@ -1,12 +1,12 @@
 <template>
   <div ref="boardRef" class="reversi-board fade-in">
     <div class="game-info top-info">
-      <div class="score opponent-score" :class="{ 'current-turn': gameLogic.getCurrentPlayer() !== playerColor }">
+      <div class="score player2-score" :class="{ 'current-turn': !gameLogic.isGameOver() && gameLogic.getCurrentPlayer() !== player1Color }">
         <div class="score-content">
           <div class="score-icon-and-count" :class="{ 'rotated': isMobileDevice }">
-            <div class="color-icon" :class="opponentColorClass" />
+            <div class="color-icon" :class="player2ColorClass" />
             <div class="score-text">
-              {{ opponentDisplayName }}: <span class="count-display">{{ opponentCount }}</span>
+              {{ player2DisplayName }}: <span class="count-display">{{ player2Count }}</span>
             </div>
           </div>
         </div>
@@ -26,11 +26,11 @@
           @click="makeMove(rowIndex, colIndex)"
         >
           <div
-            v-if="cell !== 0"
+            v-if="cell !== EMPTY"
             class="piece"
             :class="{
-              'piece-black': cell === 1,
-              'piece-white': cell === 2,
+              'piece-black': cell === BLACK,
+              'piece-white': cell === WHITE,
               'flipping': animationManager.isFlipping(rowIndex, colIndex)
             }"
           />
@@ -39,12 +39,12 @@
       </div>
     </div>
     <div class="game-info bottom-info">
-      <div class="score player-score" :class="{ 'current-turn': gameLogic.getCurrentPlayer() === playerColor }">
+      <div class="score player1-score" :class="{ 'current-turn': !gameLogic.isGameOver() && gameLogic.getCurrentPlayer() === player1Color }">
         <div class="score-content">
           <div class="score-icon-and-count">
-            <div class="color-icon" :class="playerColorClass" />
+            <div class="color-icon" :class="player1ColorClass" />
             <div class="score-text">
-              {{ playerDisplayName }}: <span class="count-display">{{ playerCount }}</span>
+              {{ player1DisplayName }}: <span class="count-display">{{ player1Count }}</span>
             </div>
           </div>
         </div>
@@ -60,11 +60,10 @@
     <!-- 結果表示モーダル -->
     <ResultModal
       :is-open="showResultModal"
-      :result-text="gameResultText"
-      :is-player-win="isPlayerWin"
-      :player-count="playerCount"
-      :opponent-count="opponentCount"
-      :player-color="playerColor"
+      :player1-count="player1Count"
+      :player2-count="player2Count"
+      :player1-color="player1Color"
+      :player2-color="player2Color"
       :game-mode="props.gameMode"
       @close="closeResultModal"
       @reset-game="resetGame"
@@ -119,42 +118,30 @@ watch(board, () => {
   };
 }, { immediate: true, deep: true });
 
-const playerColor = ref<number>(BLACK);
+const player1Color = ref<number>(BLACK);
 const showResultModal = ref<boolean>(false);
 const showConfetti = ref<boolean>(false);
 const boardRef = ref<HTMLElement | null>(null);
 
-const playerColorClass = computed((): string => {
-  return playerColor.value === BLACK ? 'black-icon' : 'white-icon';
+const player2Color = computed((): number => player1Color.value === BLACK ? WHITE : BLACK);
+
+const player1ColorClass = computed((): string => {
+  return player1Color.value === BLACK ? 'black-icon' : 'white-icon';
 });
 
-const opponentColorClass = computed((): string => {
-  return playerColor.value === BLACK ? 'white-icon' : 'black-icon';
+const player2ColorClass = computed((): string => {
+  return player2Color.value === BLACK ? 'black-icon' : 'white-icon';
 });
 
-const playerCount = computed((): number => {
-  return playerColor.value === BLACK ? boardCount.value.black : boardCount.value.white;
+const player1Count = computed((): number => {
+  return player1Color.value === BLACK ? boardCount.value.black : boardCount.value.white;
 });
 
-const opponentCount = computed((): number => {
-  return playerColor.value === BLACK ? boardCount.value.white : boardCount.value.black;
+const player2Count = computed((): number => {
+  return player2Color.value === BLACK ? boardCount.value.black : boardCount.value.white;
 });
 
-const isPlayerWin = computed((): boolean => {
-  return playerCount.value > opponentCount.value;
-});
-
-const gameResultText = computed((): string => {
-  if (isPlayerWin.value) {
-    return 'あなたの勝ち！';
-  } else if (opponentCount.value > playerCount.value) {
-    return '相手の勝ち！';
-  } else {
-    return '引き分け';
-  }
-});
-
-const playerDisplayName = computed((): string => {
+const player1DisplayName = computed((): string => {
   switch (cpuController.value.gameMode) {
     case 'twoPlayers':
       return 'プレイヤー1';
@@ -167,7 +154,7 @@ const playerDisplayName = computed((): string => {
   }
 });
 
-const opponentDisplayName = computed((): string => {
+const player2DisplayName = computed((): string => {
   switch (cpuController.value.gameMode) {
     case 'twoPlayers':
       return 'プレイヤー2';
@@ -182,16 +169,16 @@ const opponentDisplayName = computed((): string => {
 
 const initializeBoard = (): void => {
   gameLogic.initializeBoard();
-  playerColor.value = Math.random() < 0.5 ? BLACK : WHITE;
+  player1Color.value = Math.random() < 0.5 ? BLACK : WHITE;
   board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
   animationManager.reset();
   showResultModal.value = false;
   showConfetti.value = false;
 };
 
-const handleOpponentTurn = async (): Promise<void> => {
+const handlePlayer2Turn = async (): Promise<void> => {
   if (!cpuController.value.isPlayerVsCPUMode() || gameLogic.isGameOver() || animationManager.isAnimating.value) return;
-  if (gameLogic.getCurrentPlayer() === playerColor.value) return;
+  if (gameLogic.getCurrentPlayer() === player1Color.value) return;
   try {
     animationManager.setAnimating(true);
     const move = await cpuController.value.decideCPUMove(gameLogic.getCurrentPlayer());
@@ -252,12 +239,12 @@ const internalMakeMove = async (row: number, col: number): Promise<void> => {
     return;
   }
   if (cpuController.value.isCPUvsCPUMode()) return;
-  if (cpuController.value.isPlayerVsCPUMode()) handleOpponentTurn();
+  if (cpuController.value.isPlayerVsCPUMode()) handlePlayer2Turn();
 };
 
 const makeMove = async (row: number, col: number): Promise<void> => {
   if (gameLogic.isGameOver() || animationManager.isAnimating.value) return;
-  if (cpuController.value.isPlayerVsCPUMode() && gameLogic.getCurrentPlayer() !== playerColor.value) return;
+  if (cpuController.value.isPlayerVsCPUMode() && gameLogic.getCurrentPlayer() !== player1Color.value) return;
   if (cpuController.value.isCPUvsCPUMode()) return;
   await internalMakeMove(row, col);
 };
@@ -265,8 +252,11 @@ const makeMove = async (row: number, col: number): Promise<void> => {
 const showGameResult = (): void => {
   setTimeout(() => {
     showResultModal.value = true;
-    if (isPlayerWin.value) {
-      showConfetti.value = true;
+    const show =
+      (props.gameMode === 'twoPlayers' && player1Count.value !== player2Count.value) ||
+      (props.gameMode === 'playerVsCPU' && player1Count.value > player2Count.value);
+    showConfetti.value = show;
+    if (show) {
       setTimeout(() => {
         showConfetti.value = false;
       }, 3000);
@@ -282,7 +272,7 @@ const resetGame = (): void => {
   initializeBoard();
   setupGame();
   if (cpuController.value.isPlayerVsCPUMode()) {
-    handleOpponentTurn();
+    handlePlayer2Turn();
   } else if (cpuController.value.isCPUvsCPUMode()) {
     setTimeout(() => {
       handleCPUvsCPUTurn();
@@ -291,23 +281,21 @@ const resetGame = (): void => {
 };
 
 const setupGame = (): void => {
-  try {
-    cpuController.value.updateSettings(props.gameMode, props.cpuLevel, props.cpu2Level);
-    board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
-  } catch (error) {
-    console.error('ゲーム設定の初期化中にエラーが発生しました:', error);
-  }
+  cpuController.value.updateSettings(props.gameMode, props.cpuLevel, props.cpu2Level);
+  board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
 };
 
-const skipToEndGame = (): void => {
-  if (animationManager.isAnimating.value) return;
+const skipToEndGame = (n: number = 2, player?: number): void => {
+  if (animationManager.isAnimating.value) {
+    return;
+  }
   animationManager.setAnimating(true);
   const remainingEmptyCells = board.value.flat().filter(cell => cell === EMPTY).length;
-  if (remainingEmptyCells <= 2) {
+  if (remainingEmptyCells <= n) {
     animationManager.setAnimating(false);
     return;
   }
-  gameLogic.generateEndGamePosition(2);
+  gameLogic.generateEndGamePosition(n, player);
   board.value = gameLogic.getBoard();
   setTimeout(() => {
     if (!gameLogic.hasValidMove(gameLogic.getCurrentPlayer())) {
@@ -344,7 +332,7 @@ watch(
     cpuController.value.updateSettings(newGameMode, newCpuLevel, newCpu2Level);
     board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
     if (cpuController.value.isPlayerVsCPUMode()) {
-      setTimeout(() => handleOpponentTurn(), 50);
+      setTimeout(() => handlePlayer2Turn(), 50);
     } else if (cpuController.value.isCPUvsCPUMode()) {
       setTimeout(() => handleCPUvsCPUTurn(), 50);
     }
@@ -381,7 +369,7 @@ declare global {
 const isValidMove = (row: number, col: number): boolean => {
   if (gameLogic.isGameOver()) return false;
   if (!gameLogic.canPlaceAt(row, col)) return false;
-  if (cpuController.value.isPlayerVsCPUMode() && gameLogic.getCurrentPlayer() !== playerColor.value) return false;
+  if (cpuController.value.isPlayerVsCPUMode() && gameLogic.getCurrentPlayer() !== player1Color.value) return false;
   if (cpuController.value.isCPUvsCPUMode()) return false;
   return true;
 };
@@ -590,5 +578,12 @@ const handleNextGame = (): void => {
 
 .reset-button:hover {
   background-color: #388E3C;
+}
+
+.score.player1-score {
+  /* プレイヤー1用のスタイル */
+}
+.score.player2-score {
+  /* プレイヤー2用のスタイル */
 }
 </style>

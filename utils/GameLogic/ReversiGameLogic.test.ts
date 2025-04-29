@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ReversiGameLogic } from './ReversiGameLogic';
+import { BLACK, EMPTY, WHITE } from './constants';
 
 describe('ReversiGameLogic', () => {
   it('初期化で8x8の盤面と初期石が配置される', () => {
@@ -7,8 +8,8 @@ describe('ReversiGameLogic', () => {
     expect(logic.board.length).toBe(8);
     expect(logic.board[0].length).toBe(8);
     const flat = logic.board.flat();
-    expect(flat.filter(x => x === 1).length).toBe(2);
-    expect(flat.filter(x => x === 2).length).toBe(2);
+    expect(flat.filter(x => x === BLACK).length).toBe(2);
+    expect(flat.filter(x => x === WHITE).length).toBe(2);
   });
 
   it('有効な手のみ石が置ける', () => {
@@ -41,7 +42,7 @@ describe('ReversiGameLogic', () => {
     const logic = new ReversiGameLogic();
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = 1;
+        logic.board[i][j] = BLACK;
       }
     }
     expect(logic.getValidMoves(1)).toEqual([]);
@@ -52,7 +53,7 @@ describe('ReversiGameLogic', () => {
     const logic = new ReversiGameLogic();
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = 1;
+        logic.board[i][j] = BLACK;
       }
     }
     expect(!logic.hasValidMove(1)).toBe(true);
@@ -63,7 +64,7 @@ describe('ReversiGameLogic', () => {
     const logic = new ReversiGameLogic();
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = 1;
+        logic.board[i][j] = BLACK;
       }
     }
     logic.endGame();
@@ -72,8 +73,8 @@ describe('ReversiGameLogic', () => {
 
   it('石数カウントが正しい', () => {
     const logic = new ReversiGameLogic();
-    logic.board[0][0] = 1;
-    logic.board[0][1] = 2;
+    logic.board[0][0] = BLACK;
+    logic.board[0][1] = WHITE;
     expect(logic.getStoneCount(1)).toBeGreaterThan(0);
     expect(logic.getStoneCount(2)).toBeGreaterThan(0);
   });
@@ -91,7 +92,7 @@ describe('ReversiGameLogic', () => {
     const logic = new ReversiGameLogic();
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = 1;
+        logic.board[i][j] = BLACK;
       }
     }
     expect(!logic.hasValidMove(1)).toBe(true);
@@ -102,10 +103,10 @@ describe('ReversiGameLogic', () => {
     const logic = new ReversiGameLogic();
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
-        logic.board[i][j] = 1;
+        logic.board[i][j] = BLACK;
       }
     }
-    logic.board[7][7] = 0;
+    logic.board[7][7] = EMPTY;
     expect(logic.getValidMoves(2)).toEqual([]);
     expect(!logic.hasValidMove(2)).toBe(true);
   });

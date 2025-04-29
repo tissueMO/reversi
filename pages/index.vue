@@ -40,7 +40,7 @@ import { CPULevel } from '~/utils/CPUPlayer';
  * ゲーム設定の型定義
  */
 interface GameSettings {
-  gameMode: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu';
+  gameMode: GameMode;
   cpuLevel: CPULevel;
   cpu2Level: CPULevel;
 }

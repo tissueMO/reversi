@@ -151,15 +151,15 @@ const emit = defineEmits<{
  * ゲーム設定型
  */
 interface GameSettings {
-  gameMode: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu';
+  gameMode: GameMode;
   cpuLevel: CPULevel;
   cpu2Level: CPULevel;
 }
 
-const gameMode = ref<'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu'>('twoPlayers');
+const gameMode = ref<GameMode>('twoPlayers');
 const cpuLevel = ref<CPULevel>(CPULevel.MEDIUM);
 const cpu2Level = ref<CPULevel>(CPULevel.MEDIUM);
-const tempGameMode = ref<'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu'>('twoPlayers');
+const tempGameMode = ref<GameMode>('twoPlayers');
 const tempCpuLevel = ref<CPULevel>(CPULevel.MEDIUM);
 const tempCpu2Level = ref<CPULevel>(CPULevel.MEDIUM);
 

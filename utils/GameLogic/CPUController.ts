@@ -2,7 +2,7 @@ import type { CPULevel } from '../CPUPlayer';
 import { CPUPlayer } from '../CPUPlayer';
 import type { ReversiGameLogic } from './ReversiGameLogic';
 import type { GameMode, Position } from './constants';
-import { BLACK } from './constants';
+import { BLACK, WHITE } from './constants';
 
 /**
  * CPU制御クラス
@@ -55,11 +55,11 @@ export class CPUController {
   public isOpponentTurn(playerColor: number, currentPlayer: number): boolean {
     if (this.gameModeValue === 'cpuVsCpu') {
       return true;
-    }
-    if (this.gameModeValue === 'playerVsCPU') {
+    } else if (this.gameModeValue === 'playerVsCPU') {
       return currentPlayer !== playerColor;
+    } else {
+      return false;
     }
-    return false;
   }
 
   /**
@@ -81,14 +81,13 @@ export class CPUController {
   private getActiveCPU(currentPlayer: number): CPUPlayer | null {
     if (this.gameModeValue === 'playerVsCPU') {
       return this.cpuPlayer;
-    } else if (this.gameModeValue === 'cpuVsCpu') {
-      if (currentPlayer === BLACK) {
+    } else if (this.gameModeValue === 'cpuVsCpu' && currentPlayer === BLACK) {
         return this.cpuPlayer;
-      } else {
-        return this.cpu2Player;
-      }
+    } else if (this.gameModeValue === 'cpuVsCpu' && currentPlayer === WHITE) {
+      return this.cpu2Player;
+    } else {
+      return null;
     }
-    return null;
   }
 
   /**

@@ -1,16 +1,16 @@
 <template>
   <BaseModal :is-open="isOpen" @close="handleNextGame">
-    <div class="result-text" :class="{ 'player-win': isPlayerWin }">
+    <div class="result-text">
       {{ resultText }}
     </div>
     <div class="score-container">
       <div class="score-item">
-        <div class="color-icon" :class="playerColorClass" />
-        <div class="score-label">{{ playerDisplayName }}: {{ playerCount }}</div>
+        <div class="color-icon" :class="player1ColorClass" />
+        <div class="score-label">{{ player1DisplayName }}: {{ player1Count }}</div>
       </div>
       <div class="score-item">
-        <div class="color-icon" :class="opponentColorClass" />
-        <div class="score-label">{{ opponentDisplayName }}: {{ opponentCount }}</div>
+        <div class="color-icon" :class="player2ColorClass" />
+        <div class="score-label">{{ player2DisplayName }}: {{ player2Count }}</div>
       </div>
     </div>
     <button class="ok-button" @click="handleNextGame">次のゲームへ</button>
@@ -20,6 +20,7 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, computed } from 'vue';
 import BaseModal from './BaseModal.vue';
+import { BLACK } from '../utils/GameLogic/constants';
 
 /**
  * ゲーム結果モーダルクラス
@@ -27,34 +28,32 @@ import BaseModal from './BaseModal.vue';
  */
 const props = defineProps<{
   isOpen: boolean;
-  isPlayerWin: boolean;
-  playerCount: number;
-  opponentCount: number;
-  playerColor: number;
+  player1Count: number;
+  player2Count: number;
+  player1Color: number;
+  player2Color: number;
   gameMode?: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu';
 }>();
 
 /**
- * プレイヤー色クラスを返します。
+ * プレイヤー1色クラスを返します。
  */
-const playerColorClass = computed((): string => {
-  return props.playerColor === 1 ? 'black-icon' : 'white-icon';
+const player1ColorClass = computed((): string => {
+  return props.player1Color === BLACK ? 'black-icon' : 'white-icon';
 });
 
 /**
- * 相手色クラスを返します。
+ * プレイヤー2色クラスを返します。
  */
-const opponentColorClass = computed((): string => {
-  return props.playerColor === 1 ? 'white-icon' : 'black-icon';
+const player2ColorClass = computed((): string => {
+  return props.player2Color === BLACK ? 'black-icon' : 'white-icon';
 });
 
 /**
- * プレイヤー表示名を返します。
+ * プレイヤー1表示名を返します。
  */
-const playerDisplayName = computed((): string => {
+const player1DisplayName = computed((): string => {
   switch (props.gameMode) {
-    case 'twoPlayers':
-      return 'プレイヤー1';
     case 'playerVsCPU':
       return 'あなた';
     case 'cpuVsCpu':
@@ -65,12 +64,10 @@ const playerDisplayName = computed((): string => {
 });
 
 /**
- * 相手表示名を返します。
+ * プレイヤー2表示名を返します。
  */
-const opponentDisplayName = computed((): string => {
+const player2DisplayName = computed((): string => {
   switch (props.gameMode) {
-    case 'twoPlayers':
-      return 'プレイヤー2';
     case 'playerVsCPU':
       return 'CPU';
     case 'cpuVsCpu':
@@ -84,15 +81,12 @@ const opponentDisplayName = computed((): string => {
  * 勝敗テキストを返します。
  */
 const resultText = computed((): string => {
-  switch (props.gameMode) {
-    case 'twoPlayers':
-      return props.isPlayerWin ? 'プレイヤー1の勝ち' : 'プレイヤー2の勝ち';
-    case 'playerVsCPU':
-      return props.isPlayerWin ? 'あなたの勝ち' : 'あなたの負け';
-    case 'cpuVsCpu':
-      return props.isPlayerWin ? 'CPU.1の勝ち' : 'CPU.2の勝ち';
-    default:
-      return props.isPlayerWin ? 'プレイヤー1の勝ち' : 'プレイヤー2の勝ち';
+  if ((props.player1Count > props.player2Count)) {
+    return `${player1DisplayName.value}の勝ち`;
+  } else if (props.player1Count < props.player2Count) {
+    return `${player2DisplayName.value}の勝ち`;
+  } else {
+    return '引き分け';
   }
 });
 
@@ -115,10 +109,6 @@ const handleNextGame = (): void => {
   font-weight: bold;
   margin-bottom: 20px;
   color: #333;
-}
-
-.player-win {
-  color: #2e7d32;
 }
 
 .score-container {
