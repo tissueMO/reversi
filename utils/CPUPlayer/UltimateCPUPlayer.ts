@@ -15,7 +15,7 @@ export class UltimateCPUPlayer extends BaseCPUPlayer {
   private modelLoadAttempts: number = 0;
   private modelLoadFailed: boolean = false;
   private readonly MAX_LOAD_ATTEMPTS = 3;
-  private readonly MODEL_PATH = '/models/reversi_model/model.json';
+  private readonly MODEL_PATH = './models/reversi_model/model.json';
 
   /**
    * コンストラクター
