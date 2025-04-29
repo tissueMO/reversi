@@ -87,8 +87,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import * as tf from '@tensorflow/tfjs';
-import { CPULevel, BLACK, WHITE, EMPTY } from '~/utils/CPUPlayer/types';
-import { CPUPlayer } from '~/utils/CPUPlayer';
+import { BLACK, WHITE, EMPTY } from '~/utils/GameLogic/constants';
+import { CPUPlayer, CPULevel } from '~/utils/CPUPlayer';
 import { UltimateCPUPlayer } from '~/utils/CPUPlayer/UltimateCPUPlayer';
 
 // TensorFlow.jsとモデルの初期化状態を管理

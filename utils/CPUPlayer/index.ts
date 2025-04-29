@@ -1,4 +1,4 @@
-import { CPULevel, Position } from './types';
+import type { Position } from '../GameLogic/constants';
 import type { BaseCPUPlayer } from './BaseCPUPlayer';
 import { EasyCPUPlayer } from './EasyCPUPlayer';
 import { MediumCPUPlayer } from './MediumCPUPlayer';
@@ -22,6 +22,16 @@ import * as tf from '@tensorflow/tfjs';
     console.error('TensorFlow.jsの初期化に失敗しました:', error);
   }
 })();
+
+/**
+ * CPUプレイヤーの難易度レベル
+ */
+export enum CPULevel {
+  EASY = 'easy',      // 初級: ランダムな手を選ぶ
+  MEDIUM = 'medium',  // 中級: 基本的な戦略を使う
+  HARD = 'hard',      // 上級: 高度な戦略を使う
+  ULTIMATE = 'ultimate' // 最強: 学習済みTensorFlowモデルを使う
+}
 
 /**
  * CPUプレイヤーのファクトリークラス
@@ -84,6 +94,3 @@ export class CPUPlayer {
     return await this.player.selectMove(board, currentPlayer);
   }
 }
-
-// 型定義をエクスポート
-export { CPULevel, Position };

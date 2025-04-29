@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CPUController } from './CPUController';
-import { CPULevel } from '../CPUPlayer/types';
+import { CPULevel } from '../CPUPlayer';
 
 describe('CPUController', () => {
   it('CPUの手を取得できる', async () => {

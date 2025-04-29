@@ -1,6 +1,6 @@
 import { BaseCPUPlayer } from './BaseCPUPlayer';
-import type { Position } from './types';
-import { CPULevel } from './types';
+import type { Position } from '../GameLogic/constants';
+import { CPULevel } from './index';
 
 /**
  * 中級CPUプレイヤークラス

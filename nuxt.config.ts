@@ -5,6 +5,15 @@ export default defineNuxtConfig({
 
   typescript: {
     strict: true,
+    tsConfig: {
+      compilerOptions: {
+        baseUrl: '.',
+        paths: {
+          '@/*': ['./*'],
+          '~/*': ['./*'],
+        },
+      },
+    },
   },
 
   css: ['~/assets/css/main.css'],

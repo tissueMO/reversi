@@ -1,5 +1,6 @@
-import type { CPULevel, Position } from './types';
-import { EMPTY, BLACK, WHITE } from './types';
+import type { CPULevel } from './index';
+import { EMPTY, BLACK, WHITE } from '../GameLogic/constants';
+import type { Position } from '../GameLogic/constants';
 
 /**
  * CPU戦略基底クラス

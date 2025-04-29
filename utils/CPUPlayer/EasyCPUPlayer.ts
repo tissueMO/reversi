@@ -1,6 +1,6 @@
 import { BaseCPUPlayer } from './BaseCPUPlayer';
-import type { Position } from './types';
-import { CPULevel } from './types';
+import type { Position } from '../GameLogic/constants';
+import { CPULevel } from './index';
 
 /**
  * 初級CPUプレイヤークラス
@@ -17,7 +17,7 @@ export class EasyCPUPlayer extends BaseCPUPlayer {
   /**
    * 初級難易度の手をランダムに選択します。
    */
-  protected async selectMoveByStrategy(board: number[][], currentPlayer: number, validMoves: Position[]): Promise<Position> {
+  protected async selectMoveByStrategy(_board: number[][], _currentPlayer: number, validMoves: Position[]): Promise<Position> {
     const randomIndex: number = Math.floor(Math.random() * validMoves.length);
     return validMoves[randomIndex];
   }

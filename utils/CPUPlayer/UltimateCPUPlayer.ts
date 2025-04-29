@@ -1,7 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
 import { BaseCPUPlayer } from './BaseCPUPlayer';
-import type { Position } from './types';
-import { CPULevel, BLACK, WHITE, EMPTY  } from './types';
+import type { Position } from '../GameLogic/constants';
+import { CPULevel } from './index';
+import { BLACK, WHITE, EMPTY } from '../GameLogic/constants';
 import { HardCPUPlayer } from './HardCPUPlayer';
 
 /**
@@ -77,11 +78,13 @@ export class UltimateCPUPlayer extends BaseCPUPlayer {
       dummyInput.dispose();
       tf.engine().endScope();
       this.modelLoadFailed = false;
-    } catch (error) {
+    } catch {
       try {
         tf.engine().endScope();
         tf.engine().disposeVariables();
-      } catch (_) {}
+      } catch {
+        // ignore
+      }
       if (this.modelLoadAttempts >= this.MAX_LOAD_ATTEMPTS) {
         this.modelLoadFailed = true;
       } else {
@@ -163,15 +166,17 @@ export class UltimateCPUPlayer extends BaseCPUPlayer {
           return hardPlayer.selectMoveUsingHardStrategy(board, currentPlayer, validMoves);
         }
         return moveScores[0].move;
-      } catch (_) {
+      } catch {
         input.dispose();
         const hardPlayer = new HardCPUPlayer();
         return hardPlayer.selectMoveUsingHardStrategy(board, currentPlayer, validMoves);
       }
-    } catch (_) {
+    } catch {
       try {
         tf.disposeVariables();
-      } catch (_) {}
+      } catch {
+        // ignore
+      }
       const hardPlayer = new HardCPUPlayer();
       return hardPlayer.selectMoveUsingHardStrategy(board, currentPlayer, validMoves);
     }
