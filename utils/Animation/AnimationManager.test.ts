@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FlipAnimationManager } from '../Animation/FlipAnimationManager';
+import { FlipAnimationManager } from './FlipAnimationManager';
 
 describe('FlipAnimationManager', () => {
   let manager: FlipAnimationManager;

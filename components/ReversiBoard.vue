@@ -22,7 +22,7 @@
           v-for="(cell, colIndex) in row"
           :key="`cell-${rowIndex}-${colIndex}`"
           class="board-cell"
-          :class="{ 'valid-move': isValidMove(rowIndex, colIndex) && !animationManager.isAnimating.value }"
+          :class="{ 'valid-move': isValidMove(rowIndex, colIndex) && !flipAnimator.isAnimating.value }"
           @click="makeMove(rowIndex, colIndex)"
         >
           <div
@@ -31,10 +31,10 @@
             :class="{
               'piece-black': cell === BLACK,
               'piece-white': cell === WHITE,
-              'flipping': animationManager.isFlipping(rowIndex, colIndex)
+              'flipping': flipAnimator.isFlipping(rowIndex, colIndex)
             }"
           />
-          <div v-else-if="isValidMove(rowIndex, colIndex) && !animationManager.isAnimating.value" class="valid-move-indicator" />
+          <div v-else-if="isValidMove(rowIndex, colIndex) && !flipAnimator.isAnimating.value" class="valid-move-indicator" />
         </div>
       </div>
     </div>
@@ -106,7 +106,7 @@ const detectDeviceType = (): void => {
 };
 
 const gameLogic = new ReversiGameLogic();
-const animationManager = new FlipAnimationManager();
+const flipAnimator = new FlipAnimationManager();
 const cpuController = ref(new CPUController(gameLogic));
 const board = ref<number[][]>(gameLogic.getBoard());
 const boardCount = ref<{black: number, white: number}>({ black: 2, white: 2 });
@@ -167,85 +167,132 @@ const player2DisplayName = computed((): string => {
   }
 });
 
+/**
+ * CPU手番用setTimeoutのタイマーID管理
+ */
+let cpuTurnTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+const clearCPUTurnTimeout = (): void => {
+  if (cpuTurnTimeoutId !== null) {
+    clearTimeout(cpuTurnTimeoutId);
+    cpuTurnTimeoutId = null;
+  }
+};
+
+const startCPUTurnIfNeeded = (): void => {
+  clearCPUTurnTimeout();
+
+  if (flipAnimator.isAnimating.value || gameLogic.isGameOver()) {
+    return;
+  }
+
+  if (cpuController.value.isCPUvsCPUMode()) {
+    cpuTurnTimeoutId = setTimeout(() => handleCPUvsCPUTurn(), 50);
+  } else if (cpuController.value.isPlayerVsCPUMode() && gameLogic.getCurrentPlayer() !== player1Color.value) {
+    cpuTurnTimeoutId = setTimeout(() => handlePlayer2Turn(), 50);
+  }
+};
+
 const initializeBoard = (): void => {
+  clearCPUTurnTimeout();
   gameLogic.initializeBoard();
   player1Color.value = Math.random() < 0.5 ? BLACK : WHITE;
-  board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
-  animationManager.reset();
+  board.value = gameLogic.getBoard();
+  flipAnimator.reset();
   showResultModal.value = false;
   showConfetti.value = false;
 };
 
 const handlePlayer2Turn = async (): Promise<void> => {
-  if (!cpuController.value.isPlayerVsCPUMode() || gameLogic.isGameOver() || animationManager.isAnimating.value) return;
-  if (gameLogic.getCurrentPlayer() === player1Color.value) return;
-  try {
-    animationManager.setAnimating(true);
-    const move = await cpuController.value.decideCPUMove(gameLogic.getCurrentPlayer());
-    if (gameLogic.isGameOver()) {
-      animationManager.setAnimating(false);
-      return;
-    }
-    if (move) {
-      await internalMakeMove(move.row, move.col);
-    } else {
-      handleNoValidMoves();
-    }
-  } finally {
-    animationManager.setAnimating(false);
+  if (!cpuController.value.isPlayerVsCPUMode() || gameLogic.isGameOver() || flipAnimator.isAnimating.value) {
+    return;
   }
+  if (gameLogic.getCurrentPlayer() === player1Color.value) {
+    return;
+  }
+  flipAnimator.setAnimating(true);
+  const move = await cpuController.value.decideCPUMove(gameLogic.getCurrentPlayer());
+  if (gameLogic.isGameOver()) {
+    flipAnimator.setAnimating(false);
+    return;
+  }
+  if (move) {
+    await internalMakeMove(move.row, move.col);
+  } else {
+    handleNoValidMoves();
+  }
+  flipAnimator.setAnimating(false);
 };
 
 const handleCPUvsCPUTurn = async (): Promise<void> => {
-  if (!cpuController.value.isCPUvsCPUMode() || gameLogic.isGameOver() || animationManager.isAnimating.value) return;
-  try {
-    const currentPlayer = gameLogic.getCurrentPlayer();
-    animationManager.setAnimating(true);
-    const move = await cpuController.value.decideCPUMove(currentPlayer);
-    if (move) {
-      await internalMakeMove(move.row, move.col);
-      if (!gameLogic.isGameOver()) {
-        setTimeout(() => handleCPUvsCPUTurn(), 300);
-      }
-    } else {
-      handleNoValidMoves();
-      if (!gameLogic.isGameOver()) {
-        setTimeout(() => handleCPUvsCPUTurn(), 300);
-      }
-    }
-  } finally {
-    animationManager.setAnimating(false);
+  console.log(`CPUターン: ${gameLogic.getCurrentPlayer()}`);
+  if (!cpuController.value.isCPUvsCPUMode() || gameLogic.isGameOver() || flipAnimator.isAnimating.value) {
+    return;
   }
+  flipAnimator.setAnimating(true);
+  const move = await cpuController.value.decideCPUMove(gameLogic.getCurrentPlayer());
+  if (move) {
+    await internalMakeMove(move.row, move.col);
+  } else {
+    handleNoValidMoves();
+  }
+  flipAnimator.setAnimating(false);
 };
 
 const handleNoValidMoves = (): void => {
-  const canContinue = gameLogic.nextTurn();
-  board.value = gameLogic.getBoard();
-  if (!canContinue || gameLogic.isGameOver()) {
+  if (!gameLogic.nextTurn() || gameLogic.isGameOver()) {
     showGameResult();
   }
 };
 
+const gameVersion = ref<number>(0);
+
 const internalMakeMove = async (row: number, col: number): Promise<void> => {
-  if (!gameLogic.canPlaceAt(row, col)) return;
-  animationManager.setAnimating(true);
+  if (!gameLogic.canPlaceAt(row, col)) {
+    return;
+  }
+  const currentVersion = gameVersion.value;
+  flipAnimator.setAnimating(true);
   const flippablePieces = gameLogic.placeStone(row, col);
   board.value = gameLogic.getBoard();
-  await animationManager.animateFlip({ row, col }, flippablePieces);
+  await flipAnimator.animateFlip({ row, col }, flippablePieces);
+  if (gameVersion.value !== currentVersion) {
+    flipAnimator.setAnimating(false);
+    return;
+  }
   const canContinue = gameLogic.nextTurn();
   board.value = gameLogic.getBoard();
+  flipAnimator.setAnimating(false);
   if (!canContinue || gameLogic.isGameOver()) {
     showGameResult();
     return;
   }
-  if (cpuController.value.isCPUvsCPUMode()) return;
-  if (cpuController.value.isPlayerVsCPUMode()) handlePlayer2Turn();
+
+  // 次の手番がCPUならCPUターンを開始
+  clearCPUTurnTimeout();
+  if (cpuController.value.isCPUvsCPUMode()) {
+    cpuTurnTimeoutId = setTimeout(() => handleCPUvsCPUTurn(), 50);
+    return;
+  }
+  if (cpuController.value.isPlayerVsCPUMode() && gameLogic.getCurrentPlayer() !== player1Color.value) {
+    cpuTurnTimeoutId = setTimeout(() => handlePlayer2Turn(), 50);
+    return;
+  }
 };
 
 const makeMove = async (row: number, col: number): Promise<void> => {
-  if (gameLogic.isGameOver() || animationManager.isAnimating.value) return;
-  if (cpuController.value.isPlayerVsCPUMode() && gameLogic.getCurrentPlayer() !== player1Color.value) return;
-  if (cpuController.value.isCPUvsCPUMode()) return;
+  if (gameLogic.isGameOver() || flipAnimator.isAnimating.value) {
+    return;
+  }
+  if (cpuController.value.isPlayerVsCPUMode() && gameLogic.getCurrentPlayer() !== player1Color.value) {
+    return;
+  }
+  if (cpuController.value.isCPUvsCPUMode()) {
+    return;
+  }
+  if (!gameLogic.canPlaceAt(row, col)) {
+    return;
+  }
   await internalMakeMove(row, col);
 };
 
@@ -269,30 +316,26 @@ const closeResultModal = (): void => {
 };
 
 const resetGame = (): void => {
+  clearCPUTurnTimeout();
   initializeBoard();
   setupGame();
-  if (cpuController.value.isPlayerVsCPUMode()) {
-    handlePlayer2Turn();
-  } else if (cpuController.value.isCPUvsCPUMode()) {
-    setTimeout(() => {
-      handleCPUvsCPUTurn();
-    }, 500);
-  }
+  startCPUTurnIfNeeded();
 };
 
 const setupGame = (): void => {
   cpuController.value.updateSettings(props.gameMode, props.cpuLevel, props.cpu2Level);
-  board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
+  board.value = gameLogic.getBoard();
+  gameVersion.value++;
 };
 
 const skipToEndGame = (n: number = 2, player?: number): void => {
-  if (animationManager.isAnimating.value) {
+  if (flipAnimator.isAnimating.value) {
     return;
   }
-  animationManager.setAnimating(true);
+  flipAnimator.setAnimating(true);
   const remainingEmptyCells = board.value.flat().filter(cell => cell === EMPTY).length;
   if (remainingEmptyCells <= n) {
-    animationManager.setAnimating(false);
+    flipAnimator.setAnimating(false);
     return;
   }
   gameLogic.generateEndGamePosition(n, player);
@@ -305,7 +348,7 @@ const skipToEndGame = (n: number = 2, player?: number): void => {
         showGameResult();
       }
     }
-    animationManager.setAnimating(false);
+    flipAnimator.setAnimating(false);
   }, 500);
 };
 
@@ -330,12 +373,7 @@ watch(
     initializeBoard();
     cpuController.value = new CPUController(gameLogic);
     cpuController.value.updateSettings(newGameMode, newCpuLevel, newCpu2Level);
-    board.value = JSON.parse(JSON.stringify(gameLogic.getBoard()));
-    if (cpuController.value.isPlayerVsCPUMode()) {
-      setTimeout(() => handlePlayer2Turn(), 50);
-    } else if (cpuController.value.isCPUvsCPUMode()) {
-      setTimeout(() => handleCPUvsCPUTurn(), 50);
-    }
+    board.value = gameLogic.getBoard();
   },
   { immediate: true },
 );
@@ -578,12 +616,5 @@ const handleNextGame = (): void => {
 
 .reset-button:hover {
   background-color: #388E3C;
-}
-
-.score.player1-score {
-  /* プレイヤー1用のスタイル */
-}
-.score.player2-score {
-  /* プレイヤー2用のスタイル */
 }
 </style>
