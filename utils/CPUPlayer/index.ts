@@ -1,5 +1,4 @@
-import { CPULevel } from './types';
-import type { Position } from './types';
+import { CPULevel, Position } from './types';
 import type { BaseCPUPlayer } from './BaseCPUPlayer';
 import { EasyCPUPlayer } from './EasyCPUPlayer';
 import { MediumCPUPlayer } from './MediumCPUPlayer';

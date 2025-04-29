@@ -1,15 +1,15 @@
 <template>
   <BaseModal :is-open="isOpen" @close="handleNextGame">
     <div class="result-text" :class="{ 'player-win': isPlayerWin }">
-      {{ computedResultText }}
+      {{ resultText }}
     </div>
     <div class="score-container">
       <div class="score-item">
-        <div class="color-icon" :class="playerColorClass"/>
+        <div class="color-icon" :class="playerColorClass" />
         <div class="score-label">{{ playerDisplayName }}: {{ playerCount }}</div>
       </div>
       <div class="score-item">
-        <div class="color-icon" :class="opponentColorClass"/>
+        <div class="color-icon" :class="opponentColorClass" />
         <div class="score-label">{{ opponentDisplayName }}: {{ opponentCount }}</div>
       </div>
     </div>
@@ -22,7 +22,8 @@ import { defineProps, defineEmits, computed } from 'vue';
 import BaseModal from './BaseModal.vue';
 
 /**
- * モーダルの表示状態、プレイヤー勝利フラグ、スコア情報を受け取る
+ * ゲーム結果モーダルクラス
+ * 勝敗・スコア・UI制御を担う
  */
 const props = defineProps<{
   isOpen: boolean;
@@ -34,21 +35,21 @@ const props = defineProps<{
 }>();
 
 /**
- * プレイヤー色に対応するCSSクラス
+ * プレイヤー色クラスを返します。
  */
 const playerColorClass = computed((): string => {
   return props.playerColor === 1 ? 'black-icon' : 'white-icon';
 });
 
 /**
- * 相手色に対応するCSSクラス
+ * 相手色クラスを返します。
  */
 const opponentColorClass = computed((): string => {
   return props.playerColor === 1 ? 'white-icon' : 'black-icon';
 });
 
 /**
- * プレイヤー1の表示名（対戦モードによって異なる）
+ * プレイヤー表示名を返します。
  */
 const playerDisplayName = computed((): string => {
   switch (props.gameMode) {
@@ -64,7 +65,7 @@ const playerDisplayName = computed((): string => {
 });
 
 /**
- * プレイヤー2（相手）の表示名（対戦モードによって異なる）
+ * 相手表示名を返します。
  */
 const opponentDisplayName = computed((): string => {
   switch (props.gameMode) {
@@ -80,9 +81,9 @@ const opponentDisplayName = computed((): string => {
 });
 
 /**
- * ゲームの結果テキスト（ゲームモードと勝敗状況に応じて変化）
+ * 勝敗テキストを返します。
  */
-const computedResultText = computed((): string => {
+const resultText = computed((): string => {
   switch (props.gameMode) {
     case 'twoPlayers':
       return props.isPlayerWin ? 'プレイヤー1の勝ち' : 'プレイヤー2の勝ち';
@@ -95,20 +96,16 @@ const computedResultText = computed((): string => {
   }
 });
 
-/**
- * モーダルを閉じるイベント、ゲームリセットイベント、次のゲームへ進むイベントを発行
- */
 const emit = defineEmits<{
   (e: 'close' | 'reset-game' | 'next-game'): void;
 }>();
 
 /**
- * 「次のゲームへ」ボタンを押したときの処理
- * 次のゲーム設定画面を表示するためのイベントを発行
+ * 「次のゲームへ」ボタン押下時の処理を行います。
  */
 const handleNextGame = (): void => {
-  emit('next-game'); // 次のゲーム設定画面表示イベントを発行
-  emit('close'); // モーダルを閉じる
+  emit('next-game');
+  emit('close');
 };
 </script>
 

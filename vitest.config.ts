@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
-    include: ['test/**/*.test.ts'],
+    include: ['**/*.test.ts'],
     deps: {
       inline: ['@nuxt/test-utils'],
     },

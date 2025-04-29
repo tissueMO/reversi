@@ -12,19 +12,19 @@
 import { defineProps, ref, onMounted, onUnmounted, computed, watch } from 'vue';
 
 /**
- * クラッカーアニメーションの表示状態を受け取る
+ * クラッカーアニメーションクラス
+ * 紙吹雪エフェクトの表示・状態管理を担う
  */
 const props = defineProps<{
   isActive: boolean;
 }>();
 
-/**
- * クラッカーの色のバリエーション
- */
-const COLORS = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8BC34A', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722'];
+const COLORS: string[] = [
+  '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8BC34A', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722',
+];
 
 /**
- * クラッカーの紙片を表現するインターフェース
+ * 紙吹雪インターフェース
  */
 interface Confetto {
   x: number;
@@ -37,28 +37,21 @@ interface Confetto {
   rotationSpeed: number;
 }
 
-/**
- * クラッカーの紙片コレクション
- * 画面中央から放出される100個の紙片をランダム生成
- */
 const confetti = ref<Confetto[]>(Array.from({ length: 100 }).map(() => ({
-  x: 50, // 画面中央のX座標（%）
-  y: 50, // 画面中央のY座標（%）
-  rotation: Math.random() * 360, // 初期回転
-  size: Math.random() * 0.8 + 0.5, // サイズ
-  color: COLORS[Math.floor(Math.random() * COLORS.length)], // ランダムな色
-  speed: Math.random() * 3 + 1, // 移動速度
-  angle: Math.random() * 360, // 移動方向
-  rotationSpeed: (Math.random() - 0.5) * 10, // 回転速度
+  x: 50,
+  y: 50,
+  rotation: Math.random() * 360,
+  size: Math.random() * 0.8 + 0.5,
+  color: COLORS[Math.floor(Math.random() * COLORS.length)],
+  speed: Math.random() * 3 + 1,
+  angle: Math.random() * 360,
+  rotationSpeed: (Math.random() - 0.5) * 10,
 })));
 
-/**
- * アニメーションフレーム用のID
- */
-let animationFrame: number;
+let animationFrame: number | undefined;
 
 /**
- * クラッカー紙片のスタイル生成
+ * 紙吹雪のスタイルを返します。
  */
 const confettoStyle = computed(() => {
   return (confetto: Confetto) => {
@@ -72,50 +65,33 @@ const confettoStyle = computed(() => {
 });
 
 /**
- * クラッカーアニメーション更新処理
+ * 紙吹雪アニメーションを更新します。
  */
 const updateConfetti = (): void => {
   confetti.value = confetti.value.map(confetto => {
-    // ラジアンに変換
     const angleRad = (confetto.angle * Math.PI) / 180;
-    // X方向の移動
     confetto.x += Math.cos(angleRad) * confetto.speed * 0.3;
-    // Y方向の移動（重力効果を加える）
     confetto.y += Math.sin(angleRad) * confetto.speed * 0.3 + 0.1;
-    // 回転更新
     confetto.rotation += confetto.rotationSpeed;
-
-    // 画面外に出たら再配置せずそのまま移動（一時的な効果のため）
     return confetto;
   });
-
-  // 再帰的にアニメーション実行
   if (props.isActive) {
     animationFrame = requestAnimationFrame(updateConfetti);
   }
 };
 
-/**
- * コンポーネントマウント時の処理
- */
 onMounted(() => {
   if (props.isActive) {
     animationFrame = requestAnimationFrame(updateConfetti);
   }
 });
 
-/**
- * コンポーネントアンマウント時のクリーンアップ
- */
 onUnmounted(() => {
   if (animationFrame) {
     cancelAnimationFrame(animationFrame);
   }
 });
 
-/**
- * アクティブ状態が変わった時の監視
- */
 watch(
   () => props.isActive,
   (newValue) => {

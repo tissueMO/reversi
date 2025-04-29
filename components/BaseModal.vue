@@ -11,31 +11,20 @@
 import { defineProps, defineEmits } from 'vue';
 
 /**
- * コンポーネントのプロパティ定義
+ * 汎用モーダルクラス
+ * モーダル表示・閉じる制御を担う
  */
-defineProps<{
-  /**
-   * モーダルの表示状態
-   */
+const props = defineProps<{
   isOpen: boolean;
-  /**
-   * 閉じるボタンを表示するかどうか
-   */
   showCloseButton?: boolean;
 }>();
 
-/**
- * emitするイベントの定義
- */
 const emit = defineEmits<{
-  /**
-   * モーダルを閉じるイベント
-   */
-  (e: 'close'): void
+  (e: 'close'): void;
 }>();
 
 /**
- * モーダルを閉じる
+ * モーダルを閉じます。
  */
 const closeModal = (): void => {
   emit('close');

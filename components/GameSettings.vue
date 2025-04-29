@@ -133,42 +133,22 @@ import { CPULevel } from '~/utils/CPUPlayer';
 import BaseModal from '~/components/BaseModal.vue';
 
 /**
- * コンポーネントのプロパティ定義
+ * ゲーム設定モーダルクラス
+ * 対戦モード・CPU強さ・リセット制御を担う
  */
 const props = defineProps<{
-  /**
-   * モーダルの表示状態
-   */
   isOpen: boolean;
-  /**
-   * 閉じるボタンを表示するかどうか
-   * ゲーム開始前は表示せず、ゲーム中のリセット時に表示する
-   */
   showCloseButton?: boolean;
-  /**
-   * リセットモードかどうか
-   * ゲーム途中のリセットボタンからモーダルを開いた場合はtrue
-   * ゲーム開始前やゲームクリア後のモーダル表示ではfalse
-   */
   isResetMode?: boolean;
 }>();
 
-/**
- * emitするイベントの定義
- */
 const emit = defineEmits<{
-  /**
-   * 設定が更新されたときに発行されるイベント
-   */
   (e: 'update:settings', settings: GameSettings): void,
-  /**
-   * 新しいゲームが開始されたときに発行、またはモーダルを閉じるイベント
-   */
   (e: 'new-game' | 'close'): void
 }>();
 
 /**
- * ゲーム設定の型定義
+ * ゲーム設定型
  */
 interface GameSettings {
   gameMode: 'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu';
@@ -176,23 +156,13 @@ interface GameSettings {
   cpu2Level: CPULevel;
 }
 
-/**
- * 現在の設定値（ゲーム中に実際に使用される値）
- */
 const gameMode = ref<'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu'>('twoPlayers');
 const cpuLevel = ref<CPULevel>(CPULevel.MEDIUM);
 const cpu2Level = ref<CPULevel>(CPULevel.MEDIUM);
-
-/**
- * モーダル内での一時的な設定値（確定前の値）
- */
 const tempGameMode = ref<'twoPlayers' | 'playerVsCPU' | 'cpuVsCpu'>('twoPlayers');
 const tempCpuLevel = ref<CPULevel>(CPULevel.MEDIUM);
 const tempCpu2Level = ref<CPULevel>(CPULevel.MEDIUM);
 
-/**
- * モーダルが開かれたときに現在の設定を一時保存領域にコピー
- */
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     tempGameMode.value = gameMode.value;
@@ -201,9 +171,6 @@ watch(() => props.isOpen, (isOpen) => {
   }
 });
 
-/**
- * 初期化
- */
 onMounted(() => {
   tempGameMode.value = gameMode.value;
   tempCpuLevel.value = cpuLevel.value;
@@ -211,32 +178,24 @@ onMounted(() => {
 });
 
 /**
- * 新しいゲームを開始する
- * 設定を更新し、ゲーム開始イベントを発行してモーダルを閉じる
+ * 新しいゲームを開始します。
  */
 const startNewGame = (): void => {
-  // 一時設定を実際の設定に反映
   gameMode.value = tempGameMode.value;
   cpuLevel.value = tempCpuLevel.value;
   cpu2Level.value = tempCpu2Level.value;
-
   const settings: GameSettings = {
     gameMode: gameMode.value,
     cpuLevel: cpuLevel.value,
     cpu2Level: cpu2Level.value,
   };
-
-  console.log('GameSettings: 設定を確定してゲームを開始します', settings);
-
-  // 明示的な型で設定を更新
   emit('update:settings', settings);
   emit('new-game');
   emit('close');
 };
 
 /**
- * モーダルを閉じる
- * ゲーム中のリセット時にバツボタンで閉じるために使用
+ * モーダルを閉じます。
  */
 const closeModal = (): void => {
   emit('close');
