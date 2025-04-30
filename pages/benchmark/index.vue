@@ -5,10 +5,9 @@
     <div class="settings-container">
       <h2>ベンチマーク設定</h2>
 
-      <!-- モデル読み込み状況の表示を追加 -->
-      <div v-if="opponentLevel === CPULevel.ULTIMATE || ultimateIsBlack" class="model-status">
+      <div v-if="needsUltimateModel" class="model-status">
         <div v-if="isModelLoading" class="loading-indicator">
-          <div class="spinner"/>
+          <div class="spinner" />
           <span>最強CPUのモデルを読み込み中...</span>
         </div>
         <div v-else-if="isModelLoaded" class="success-message">
@@ -16,336 +15,377 @@
         </div>
         <div v-else class="error-message">
           <span>⚠ 最強CPUのモデルが読み込まれていません。読み込みボタンを押してください。</span>
-          <button :disabled="isModelLoading" @click="loadUltimateModel">モデルを読み込む</button>
+          <button :disabled="isModelLoading" @click="onClickLoadModel">モデルを読み込む</button>
         </div>
       </div>
 
       <div class="setting-row">
-        <label for="opponent-level">相手CPUの難易度:</label>
-        <select id="opponent-level" v-model="opponentLevel">
-          <option value="easy">イージー</option>
-          <option value="medium">ミディアム</option>
-          <option value="hard">ハード</option>
-          <option value="ultimate">アルティメット（最強CPU同士の対決）</option>
-        </select>
+        <label for="black-level">黒CPUの難易度:</label>
+        <div class="custom-select-wrapper small">
+          <select id="black-level" v-model="blackLevel" class="custom-select small">
+            <option :value="CPULevel.EASY">イージー</option>
+            <option :value="CPULevel.MEDIUM">ミディアム</option>
+            <option :value="CPULevel.HARD">ハード</option>
+            <option :value="CPULevel.ULTIMATE">アルティメット（最強CPU）</option>
+          </select>
+          <span class="custom-arrow"/>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <label for="white-level">白CPUの難易度:</label>
+        <div class="custom-select-wrapper small">
+          <select id="white-level" v-model="whiteLevel" class="custom-select small">
+            <option :value="CPULevel.EASY">イージー</option>
+            <option :value="CPULevel.MEDIUM">ミディアム</option>
+            <option :value="CPULevel.HARD">ハード</option>
+            <option :value="CPULevel.ULTIMATE">アルティメット（最強CPU）</option>
+          </select>
+          <span class="custom-arrow"/>
+        </div>
       </div>
 
       <div class="setting-row">
         <label for="num-games">対戦回数:</label>
-        <input id="num-games" v-model="numGames" type="number" min="1" max="100" >
+        <div class="custom-input-wrapper small">
+          <input id="num-games" v-model.number="numGames" type="number" min="1" max="100" class="custom-input small" >
+        </div>
       </div>
 
-      <div class="setting-row">
-        <label for="ultimate-color">最強CPUの色:</label>
-        <select id="ultimate-color" v-model="ultimateIsBlack">
-          <option :value="true">黒（先手）</option>
-          <option :value="false">白（後手）</option>
-        </select>
-      </div>
-
-      <button :disabled="isRunning || shouldDisableStartButton" @click="startBenchmark">ベンチマーク実行</button>
+      <button :disabled="isRunning || shouldDisableStartButton" @click="onClickStartBenchmark">ベンチマーク実行</button>
     </div>
 
-    <div v-if="showResults" class="results-container">
+    <div v-if="isRunning" class="results-container">
       <h2>ベンチマーク結果</h2>
-
-      <div v-if="isRunning" class="progress-container">
+      <div class="progress-container">
         <p>進行状況: {{ Math.round(progress * 100) }}% ({{ completedGames }}/{{ numGames }})</p>
         <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: progress * 100 + '%' }"/>
+          <div class="progress-fill" :style="{ width: progress * 100 + '%' }" />
         </div>
       </div>
+    </div>
 
-      <div v-if="benchmarkResults" class="results">
-        <div class="result-summary">
-          <p>最強CPU({{ CPULevel.ULTIMATE }}) vs 相手CPU({{ opponentLevel }})</p>
-          <p>最強CPUの色: {{ ultimateIsBlack ? '黒(●)' : '白(○)' }}</p>
-          <p>対戦回数: {{ numGames }}回</p>
-        </div>
-
-        <div class="result-stats">
-          <div class="stat-item">
-            <h3>勝率</h3>
-            <p>最強CPU: {{ (benchmarkResults.ultimateWinRate).toFixed(2) }}% ({{ benchmarkResults.ultimateWins }}勝)</p>
-            <p>相手CPU: {{ (benchmarkResults.opponentWinRate).toFixed(2) }}% ({{ benchmarkResults.opponentWins }}勝)</p>
-            <p>引き分け: {{ (benchmarkResults.drawRate).toFixed(2) }}% ({{ benchmarkResults.draws }}回)</p>
+    <div v-if="benchmarkLogs.length > 0" class="benchmark-log-list">
+      <h2>ベンチマーク履歴</h2>
+      <div v-for="log in benchmarkLogs" :key="log.timestamp" class="results-container log-entry">
+        <div class="result-stats unified">
+          <h3>黒CPU({{ log.blackLevel }})・白CPU({{ log.whiteLevel }})</h3>
+          <div class="result-row">
+            <div class="result-col">
+              <div class="result-label">勝率</div>
+              <div class="result-value">黒: {{ log.result.blackWinRate.toFixed(2) }}% ({{ log.result.blackWins }}勝)</div>
+              <div class="result-value">白: {{ log.result.whiteWinRate.toFixed(2) }}% ({{ log.result.whiteWins }}勝)</div>
+              <div class="result-value">引き分け: {{ log.result.drawRate.toFixed(2) }}% ({{ log.result.draws }}回)</div>
+            </div>
+            <div class="result-col">
+              <div class="result-label">平均石数</div>
+              <div class="result-value">黒: {{ log.result.blackAvgStones.toFixed(1) }}</div>
+              <div class="result-value">白: {{ log.result.whiteAvgStones.toFixed(1) }}</div>
+            </div>
           </div>
-
-          <div class="stat-item">
-            <h3>平均石数</h3>
-            <p>最強CPU: {{ benchmarkResults.ultimateAvgStones.toFixed(1) }}</p>
-            <p>相手CPU: {{ benchmarkResults.opponentAvgStones.toFixed(1) }}</p>
-          </div>
         </div>
-
-        <button @click="showResults = false">閉じる</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import * as tf from '@tensorflow/tfjs';
-import { BLACK, WHITE, EMPTY } from '~/utils/GameLogic/constants';
-import { CPUPlayer, CPULevel } from '~/utils/CPUPlayer';
-import { UltimateCPUPlayer } from '~/utils/CPUPlayer/UltimateCPUPlayer';
+import { BLACK, WHITE, EMPTY } from '../../utils/GameLogic/constants';
+import { CPUPlayer, CPULevel } from '../../utils/CPUPlayer';
+import { UltimateCPUPlayer } from '../../utils/CPUPlayer/UltimateCPUPlayer';
 
-// TensorFlow.jsとモデルの初期化状態を管理
-const isModelLoading = ref<boolean>(false);
-const isModelLoaded = ref<boolean>(false);
-let ultimatePlayer: UltimateCPUPlayer | null = null;
+/**
+ * ベンチマーク結果型
+ */
+type BenchmarkResult = {
+  blackWins: number;
+  whiteWins: number;
+  draws: number;
+  blackWinRate: number;
+  whiteWinRate: number;
+  drawRate: number;
+  blackAvgStones: number;
+  whiteAvgStones: number;
+};
 
-// 状態変数
-const opponentLevel = ref<CPULevel>(CPULevel.MEDIUM);
-const numGames = ref<number>(10);
-const ultimateIsBlack = ref<boolean>(true);
-const isRunning = ref<boolean>(false);
-const progress = ref<number>(0);
-const completedGames = ref<number>(0);
-const showResults = ref<boolean>(false);
-const benchmarkResults = ref<any>(null);
+/**
+ * ベンチマーク履歴ログ型
+ */
+type BenchmarkLog = {
+  blackLevel: CPULevel;
+  whiteLevel: CPULevel;
+  numGames: number;
+  timestamp: string;
+  result: BenchmarkResult;
+};
 
-// 実行ボタンを無効にする条件の計算
-const shouldDisableStartButton = computed(() => {
-  const needsUltimateModel = opponentLevel.value === CPULevel.ULTIMATE || ultimateIsBlack.value;
-  return needsUltimateModel && !isModelLoaded.value;
+/**
+ * モデルロード状態を管理する型
+ */
+type ModelLoadState = {
+  isLoading: ReturnType<typeof ref<boolean>>;
+  isLoaded: ReturnType<typeof ref<boolean>>;
+  player: UltimateCPUPlayer | null;
+};
+
+/**
+ * ベンチマークページ状態管理クラス
+ */
+class BenchmarkState {
+  black: ModelLoadState = { isLoading: ref(false), isLoaded: ref(false), player: null };
+  white: ModelLoadState = { isLoading: ref(false), isLoaded: ref(false), player: null };
+  blackLevel = ref<CPULevel>(CPULevel.MEDIUM);
+  whiteLevel = ref<CPULevel>(CPULevel.MEDIUM);
+  numGames = ref<number>(10);
+  isRunning = ref(false);
+  progress = ref(0);
+  completedGames = ref(0);
+}
+
+const state = new BenchmarkState();
+const blackLevel = state.blackLevel;
+const whiteLevel = state.whiteLevel;
+const numGames = state.numGames;
+const isRunning = computed(() => state.isRunning.value);
+const progress = computed(() => state.progress.value);
+const completedGames = computed(() => state.completedGames.value);
+const benchmarkLogs = ref<BenchmarkLog[]>([]);
+
+const needsUltimateModel = computed(() => {
+  return blackLevel.value === CPULevel.ULTIMATE || whiteLevel.value === CPULevel.ULTIMATE;
 });
 
-// TensorFlow.jsの初期化とモデルのロード
-onMounted(async () => {
-  await tf.ready();
+const isModelLoading = computed(() => state.black.isLoading.value || state.white.isLoading.value);
+const isModelLoaded = computed(() => {
+  if (!needsUltimateModel.value) {
+    return true;
+  }
+  return (
+    (blackLevel.value !== CPULevel.ULTIMATE || state.black.isLoaded.value) &&
+    (whiteLevel.value !== CPULevel.ULTIMATE || state.white.isLoaded.value)
+  );
+});
 
-  // 自動的にモデル読み込みを開始
-  if (opponentLevel.value === CPULevel.ULTIMATE || ultimateIsBlack.value) {
-    loadUltimateModel();
+const shouldDisableStartButton = computed(() => {
+  void isModelLoaded.value;
+  if (!needsUltimateModel.value) {
+    return false;
+  }
+  if (blackLevel.value === CPULevel.ULTIMATE && !state.black.isLoaded.value) {
+    return true;
+  }
+  if (whiteLevel.value === CPULevel.ULTIMATE && !state.white.isLoaded.value) {
+    return true;
+  }
+  return false;
+});
+
+watch(blackLevel, (newLevel) => {
+  if (newLevel === CPULevel.ULTIMATE && !state.black.player?.isModelReady()) {
+    state.black.isLoaded.value = false;
   }
 });
 
-// 最強CPUのモデルを読み込む関数
-async function loadUltimateModel() {
-  if (isModelLoading.value || isModelLoaded.value) return;
+watch(whiteLevel, (newLevel) => {
+  if (newLevel === CPULevel.ULTIMATE && !state.white.player?.isModelReady()) {
+    state.white.isLoaded.value = false;
+  }
+});
 
-  isModelLoading.value = true;
+onMounted(async () => {
+  await tf.ready();
+  if (blackLevel.value === CPULevel.ULTIMATE) {
+    await loadUltimateModel('black');
+  }
+  if (whiteLevel.value === CPULevel.ULTIMATE) {
+    await loadUltimateModel('white');
+  }
+});
+
+/**
+ * モデルロード状態を取得します。
+ */
+function getModelState(color: 'black' | 'white'): ModelLoadState {
+  return color === 'black' ? state.black : state.white;
+}
+
+/**
+ * 最強CPUモデルをロードします。
+ */
+async function loadUltimateModel(color: 'black' | 'white'): Promise<void> {
+  const modelState = getModelState(color);
+  if (modelState.player?.isModelReady() || modelState.isLoading.value) {
+    return;
+  }
+  modelState.isLoading.value = true;
   try {
-    ultimatePlayer = new UltimateCPUPlayer();
-
-    // モデルの読み込み完了を待機
-    const checkModelLoaded = async () => {
-      if (ultimatePlayer && ultimatePlayer.isModelReady()) {
-        isModelLoaded.value = true;
-        isModelLoading.value = false;
+    modelState.player = new UltimateCPUPlayer();
+    const waitModelReady = async () => {
+      if (modelState.player && modelState.player.isModelReady()) {
+        modelState.isLoaded.value = true;
+        modelState.isLoading.value = false;
         return;
       }
-
-      if (ultimatePlayer && ultimatePlayer.hasModelLoadFailed()) {
-        isModelLoaded.value = false;
-        isModelLoading.value = false;
-        console.error('モデルの読み込みに失敗しました');
+      if (modelState.player && modelState.player.hasModelLoadFailed()) {
+        modelState.isLoaded.value = false;
+        modelState.isLoading.value = false;
         return;
       }
-
-      // まだ読み込み中の場合は再度チェック
-      setTimeout(checkModelLoaded, 500);
+      setTimeout(waitModelReady, 500);
     };
-
-    // 初回チェック開始
-    setTimeout(checkModelLoaded, 500);
-  } catch (error) {
-    console.error('モデルの読み込み初期化に失敗しました:', error);
-    isModelLoading.value = false;
-    isModelLoaded.value = false;
+    setTimeout(waitModelReady, 500);
+  } catch {
+    modelState.isLoading.value = false;
+    modelState.isLoaded.value = false;
   }
 }
 
-// リバーシの初期盤面を作成
-function createInitialBoard(): number[][] {
-  // 8x8の空の盤面を作成（全てのマスをEMPTYで初期化）
-  const board: number[][] = Array(8).fill(0).map(() => Array(8).fill(EMPTY));
+/**
+ * モデルロードボタン押下時の処理です。
+ */
+function onClickLoadModel(): void {
+  if (blackLevel.value === CPULevel.ULTIMATE && !state.black.isLoaded.value) {
+    loadUltimateModel('black');
+  }
+  if (whiteLevel.value === CPULevel.ULTIMATE && !state.white.isLoaded.value) {
+    loadUltimateModel('white');
+  }
+}
 
-  // 初期配置（中央4マスに石を配置）
+/**
+ * ベンチマーク実行ボタン押下時の処理です。
+ */
+async function onClickStartBenchmark(): Promise<void> {
+  await runBenchmark();
+}
+
+function createInitialBoard(): number[][] {
+  const board = Array.from({ length: 8 }, () => Array(8).fill(EMPTY));
   board[3][3] = WHITE;
   board[3][4] = BLACK;
   board[4][3] = BLACK;
   board[4][4] = WHITE;
-
   return board;
 }
 
-// プレイヤーが有効な手を持っているか確認
-async function hasValidMoves(board: number[][], player: number, cpuPlayer: CPUPlayer): Promise<boolean> {
-  const move = await cpuPlayer.selectMove(board, player);
+async function hasValidMoves(board: number[][], player: number, cpu: CPUPlayer): Promise<boolean> {
+  const move = await cpu.selectMove(board, player);
   return move !== null;
 }
 
-// ゲームが終了しているか確認
-async function isGameOver(board: number[][], cpuPlayer1: CPUPlayer, cpuPlayer2: CPUPlayer): Promise<boolean> {
-  const blackHasMove = await hasValidMoves(board, BLACK, cpuPlayer1);
-  const whiteHasMove = await hasValidMoves(board, WHITE, cpuPlayer2);
-  return !blackHasMove && !whiteHasMove;
+async function isGameOver(board: number[][], cpu1: CPUPlayer, cpu2: CPUPlayer): Promise<boolean> {
+  const blackHas = await hasValidMoves(board, BLACK, cpu1);
+  const whiteHas = await hasValidMoves(board, WHITE, cpu2);
+  return !blackHas && !whiteHas;
 }
 
-// ゲームの勝者を判定
-function determineWinner(board: number[][]): {winner: number, blackCount: number, whiteCount: number} {
-  const blackCount = board.flat().filter(cell => cell === BLACK).length;
-  const whiteCount = board.flat().filter(cell => cell === WHITE).length;
-
-  let winner = EMPTY; // 引き分け
-  if (blackCount > whiteCount) {
+function getResult(board: number[][]): { winner: number; black: number; white: number } {
+  const flat = board.flat();
+  const black = flat.filter(c => c === BLACK).length;
+  const white = flat.filter(c => c === WHITE).length;
+  let winner = EMPTY;
+  if (black > white) {
     winner = BLACK;
-  } else if (whiteCount > blackCount) {
+  } else if (white > black) {
     winner = WHITE;
   }
-
-  return { winner, blackCount, whiteCount };
+  return { winner, black, white };
 }
 
-// 単一のゲームをシミュレート
-async function simulateGame(cpu1: CPUPlayer, cpu2: CPUPlayer): Promise<{winner: number, blackCount: number, whiteCount: number}> {
-  // 初期盤面を作成
+async function playGame(cpuBlack: CPUPlayer, cpuWhite: CPUPlayer): Promise<{ winner: number; black: number; white: number }> {
   const board = createInitialBoard();
-  let currentPlayer = BLACK; // 黒から開始
-  let passCount = 0; // 連続パス回数
-
-  // ゲームループ
-  while (!await isGameOver(board, cpu1, cpu2)) {
-    // 現在のプレイヤーに対応するCPUを選択
-    const currentCPU = currentPlayer === BLACK ? cpu1 : cpu2;
-
-    // 次の手を選択
-    const move = await currentCPU.selectMove(board, currentPlayer);
-
+  let current = BLACK;
+  let pass = 0;
+  while (!await isGameOver(board, cpuBlack, cpuWhite)) {
+    const cpu = current === BLACK ? cpuBlack : cpuWhite;
+    const move = await cpu.selectMove(board, current);
     if (move === null) {
-      // 有効な手がない場合はパス
-      passCount++;
+      pass++;
     } else {
-      // 手を適用
-      passCount = 0; // パスカウントをリセット
-
-      // 手の適用
-      board[move.row][move.col] = currentPlayer;
-
-      // ひっくり返す処理
-      const directions = [
+      pass = 0;
+      board[move.row][move.col] = current;
+      const dirs = [
         [-1, -1], [-1, 0], [-1, 1],
         [0, -1],           [0, 1],
         [1, -1],  [1, 0],  [1, 1],
       ];
-
-      const opponent = currentPlayer === BLACK ? WHITE : BLACK;
-
-      for (const [dx, dy] of directions) {
+      const opp = current === BLACK ? WHITE : BLACK;
+      for (const [dx, dy] of dirs) {
         let x = move.row + dx;
         let y = move.col + dy;
-        const flippablePieces = [];
-
-        while (x >= 0 && x < 8 && y >= 0 && y < 8 && board[x][y] === opponent) {
-          flippablePieces.push({row: x, col: y});
+        const flips: [number, number][] = [];
+        while (x >= 0 && x < 8 && y >= 0 && y < 8 && board[x][y] === opp) {
+          flips.push([x, y]);
           x += dx;
           y += dy;
         }
-
-        if (flippablePieces.length > 0 && x >= 0 && x < 8 && y >= 0 && y < 8 && board[x][y] === currentPlayer) {
-          flippablePieces.forEach(pos => {
-            board[pos.row][pos.col] = currentPlayer;
-          });
+        if (flips.length > 0 && x >= 0 && x < 8 && y >= 0 && y < 8 && board[x][y] === current) {
+          for (const [fx, fy] of flips) {
+            board[fx][fy] = current;
+          }
         }
       }
     }
-
-    // 両プレイヤーが連続でパスした場合、ゲーム終了
-    if (passCount >= 2) break;
-
-    // 次のプレイヤーへ
-    currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+    if (pass >= 2) break;
+    current = current === BLACK ? WHITE : BLACK;
   }
-
-  // 勝者を判定
-  return determineWinner(board);
+  return getResult(board);
 }
 
-// ベンチマーク実行
-async function startBenchmark() {
-  try {
-    isRunning.value = true;
-    progress.value = 0;
-    completedGames.value = 0;
-    showResults.value = true;
+async function runBenchmark(): Promise<void> {
+  state.isRunning.value = true;
+  state.progress.value = 0;
+  state.completedGames.value = 0;
 
-    // CPUプレイヤーの作成
-    // すでに読み込まれている最強CPUプレイヤーを使用する
-    const opponentPlayer = new CPUPlayer(opponentLevel.value);
+  const cpuBlack = blackLevel.value === CPULevel.ULTIMATE
+    ? (state.black.player || new CPUPlayer(CPULevel.ULTIMATE))
+    : new CPUPlayer(blackLevel.value);
+  const cpuWhite = whiteLevel.value === CPULevel.ULTIMATE
+    ? (state.white.player || new CPUPlayer(CPULevel.ULTIMATE))
+    : new CPUPlayer(whiteLevel.value);
 
-    // 統計情報の初期化
-    let ultimateWins = 0;
-    let opponentWins = 0;
-    let draws = 0;
-    let ultimateTotalStones = 0;
-    let opponentTotalStones = 0;
+  let blackWins = 0, whiteWins = 0, draws = 0;
+  let blackStones = 0, whiteStones = 0;
 
-    // 各ゲームをシミュレート
-    for (let i = 0; i < numGames.value; i++) {
-      // CPUプレイヤーを適切に配置
-      let blackPlayer;
-      let whitePlayer;
-
-      // 最強CPUプレイヤーを適切に配置
-      if (ultimateIsBlack.value) {
-        blackPlayer = ultimatePlayer || new CPUPlayer(CPULevel.ULTIMATE);
-        whitePlayer = opponentPlayer;
-      } else {
-        blackPlayer = opponentPlayer;
-        whitePlayer = ultimatePlayer || new CPUPlayer(CPULevel.ULTIMATE);
-      }
-
-      // ゲームシミュレーション
-      const result = await simulateGame(blackPlayer, whitePlayer);
-
-      // 勝敗の記録
-      const ultimateStones = ultimateIsBlack.value ? result.blackCount : result.whiteCount;
-      const opponentStones = ultimateIsBlack.value ? result.whiteCount : result.blackCount;
-
-      if (result.winner === EMPTY) {
-        draws++;
-      } else if ((result.winner === BLACK && ultimateIsBlack.value) || (result.winner === WHITE && !ultimateIsBlack.value)) {
-        ultimateWins++;
-      } else {
-        opponentWins++;
-      }
-
-      // 石の数を統計に追加
-      ultimateTotalStones += ultimateStones;
-      opponentTotalStones += opponentStones;
-
-      // 進捗を更新
-      completedGames.value = i + 1;
-      progress.value = (i + 1) / numGames.value;
-
-      // UIの更新のために少し待つ
-      await new Promise(resolve => setTimeout(resolve, 0));
+  for (let i = 0; i < numGames.value; i++) {
+    const r = await playGame(cpuBlack, cpuWhite);
+    if (r.winner === EMPTY) {
+      draws++;
+    } else if (r.winner === BLACK) {
+      blackWins++;
+    } else {
+      whiteWins++;
     }
-
-    // 結果の計算
-    const ultimateWinRate = (ultimateWins / numGames.value) * 100;
-    const opponentWinRate = (opponentWins / numGames.value) * 100;
-    const drawRate = (draws / numGames.value) * 100;
-    const ultimateAvgStones = ultimateTotalStones / numGames.value;
-    const opponentAvgStones = opponentTotalStones / numGames.value;
-
-    // 結果の設定
-    benchmarkResults.value = {
-      ultimateWins,
-      opponentWins,
-      draws,
-      ultimateWinRate,
-      opponentWinRate,
-      drawRate,
-      ultimateAvgStones,
-      opponentAvgStones,
-    };
-  } finally {
-    isRunning.value = false;
+    blackStones += r.black;
+    whiteStones += r.white;
+    state.completedGames.value = i + 1;
+    state.progress.value = (i + 1) / numGames.value;
+    await new Promise(res => setTimeout(res, 0));
   }
+
+  const n = numGames.value;
+  const result: BenchmarkResult = {
+    blackWins,
+    whiteWins,
+    draws,
+    blackWinRate: (blackWins / n) * 100,
+    whiteWinRate: (whiteWins / n) * 100,
+    drawRate: (draws / n) * 100,
+    blackAvgStones: blackStones / n,
+    whiteAvgStones: whiteStones / n,
+  };
+
+  benchmarkLogs.value.unshift({
+    blackLevel: blackLevel.value,
+    whiteLevel: whiteLevel.value,
+    numGames: numGames.value,
+    timestamp: new Date().toLocaleString(),
+    result,
+  });
+
+  state.isRunning.value = false;
 }
 </script>
 
@@ -407,16 +447,50 @@ button:disabled {
   transition: width 0.3s ease;
 }
 
-.result-summary {
-  margin-bottom: 20px;
-  padding: 10px;
-  background-color: #e8f5e9;
-  border-radius: 4px;
-}
-
 .result-stats {
   display: flex;
   gap: 20px;
+}
+
+.result-stats.unified {
+  background-color: white;
+  padding: 18px 18px 10px 18px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.result-stats.unified h3 {
+  margin: 0 0 10px 0;
+  font-size: 17px;
+  font-weight: bold;
+  color: #333;
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 8px;
+}
+
+.result-row {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.result-col {
+  min-width: 140px;
+  flex: 1;
+}
+
+.result-label {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.result-value {
+  font-size: 15px;
+  margin-bottom: 2px;
 }
 
 .stat-item {
@@ -474,5 +548,75 @@ button:disabled {
 .error-message button {
   align-self: flex-start;
   margin: 0;
+}
+
+.custom-select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 200px;
+}
+.custom-select-wrapper.small {
+  width: 120px;
+}
+.custom-select {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  appearance: none;
+  font-size: 16px;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.custom-select.small {
+  padding: 6px 28px 6px 8px;
+  font-size: 14px;
+}
+.custom-arrow {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #888;
+  transform: translateY(-50%);
+}
+.custom-input-wrapper.small {
+  width: 80px;
+  display: inline-block;
+}
+.custom-input.small {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.custom-input.small:focus {
+  border-color: #4CAF50;
+}
+.rate-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #666;
+}
+.benchmark-log-list {
+  margin-top: 40px;
+}
+
+.log-entry {
+  margin-bottom: 24px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
 }
 </style>
